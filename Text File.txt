@@ -1,0 +1,386 @@
+You need to build an AI Car Mechanic Chatbot full-stack app within 48 hours. The task is very doable if you keep the architecture simple and avoid using Gemini for things traditional backend logic can handle.
+Full_Stack_Developer_Intern_Task.pdf
+What you have to build
+1. Frontend — React / Next.js
+Deploy it on Vercel.
+Your UI needs:
+Chat interface
+Text messages
+Image upload
+Audio upload
+Video upload
+Conversation/diagnosis history
+Book Mechanic button after diagnosis
+Full_Stack_Developer_Intern_Task.pdf
+I'd use:
+Next.js
+Tailwind CSS
+Axios / fetch
+Make the UI look like a proper modern mechanic-chat application rather than a basic assignment form.
+2. Backend — Django REST Framework
+Deploy the backend on AWS free tier.
+Use:
+Python
+Django
+Django REST Framework
+SQLite
+Gemini API
+The required APIs are:
+POST /api/chat/
+POST /api/upload/
+POST /api/diagnosis/
+POST /api/booking/
+GET  /api/booking/{id}/
+Full_Stack_Developer_Intern_Task.pdf
+3. Most important part: chatbot logic
+Don't make Gemini handle everything.
+The requirement specifically says to minimize AI/API usage and use traditional backend logic whenever possible. Full_Stack_Developer_Intern_Task.pdf
+A good flow is:
+User
+ ↓
+Chat UI
+ ↓
+POST /api/chat/
+ ↓
+Backend validates query
+ ↓
+Is this car/mechanical related?
+ ├── NO → reject politely
+ │
+ └── YES
+       ↓
+Check required information
+       ↓
+Missing information?
+ ├── YES → ask follow-up question
+ │
+ └── NO
+       ↓
+Diagnosis
+       ↓
+Gemini only when reasoning is actually needed
+       ↓
+Diagnosis + recommended repair
+       ↓
+Book Mechanic
+The bot must behave like a senior automobile technician, reject unrelated questions, ask follow-ups, analyze media when useful, and recommend a repair/service. Full_Stack_Developer_Intern_Task.pdf
+4. Database
+Keep the database simple.
+I'd create roughly these models:
+Conversation
+ ├── id
+ ├── session_id
+ ├── created_at
+
+Message
+ ├── id
+ ├── conversation
+ ├── role
+ ├── content
+ ├── media_type
+ ├── media_url
+ └── created_at
+
+Diagnosis
+ ├── id
+ ├── conversation
+ ├── symptoms
+ ├── diagnosis
+ ├── severity
+ ├── recommendation
+ └── created_at
+
+Booking
+ ├── id
+ ├── diagnosis
+ ├── customer_name
+ ├── phone
+ ├── vehicle
+ ├── preferred_date
+ ├── preferred_time
+ ├── service
+ └── status
+This is enough for the assignment.
+5. API design
+Chat
+POST /api/chat/
+Request:
+{
+  "conversation_id": 1,
+  "message": "My car is making a clicking noise when I turn."
+}
+Response:
+{
+  "reply": "When do you notice the clicking noise — only while turning at low speed, or also at higher speeds?",
+  "conversation_id": 1,
+  "needs_more_info": true
+}
+Upload
+POST /api/upload/
+Accept:
+image
+audio
+video
+Return something like:
+{
+  "id": 12,
+  "file_url": "...",
+  "media_type": "image"
+}
+Diagnosis
+POST /api/diagnosis/
+Example:
+{
+  "conversation_id": 1
+}
+Response:
+{
+  "diagnosis": "Possible CV joint issue",
+  "severity": "medium",
+  "recommendation": "Have the CV joint and axle inspected.",
+  "service": "CV Joint Inspection"
+}
+Booking
+POST /api/booking/
+Example:
+{
+  "diagnosis_id": 1,
+  "customer_name": "Honours",
+  "phone": "XXXXXXXXXX",
+  "vehicle": "Hyundai Creta",
+  "preferred_date": "2026-09-25",
+  "preferred_time": "11:00",
+  "service": "CV Joint Inspection"
+}
+Booking details
+GET /api/booking/1/
+6. Gemini usage
+Use Gemini primarily for:
+Diagnosis
+Give it structured information:
+Vehicle:
+Hyundai Creta 2022
+
+Symptoms:
+Clicking noise while turning left.
+
+Conditions:
+Low speed.
+Only when steering.
+
+Previous repairs:
+None.
+
+Media:
+[uploaded image/audio if relevant]
+Ask Gemini to return structured JSON:
+{
+  "possible_issue": "...",
+  "reasoning": "...",
+  "severity": "low|medium|high",
+  "recommended_service": "...",
+  "safety_warning": "..."
+}
+Don't call Gemini for:
+saving messages
+creating conversations
+creating bookings
+validating phone numbers
+checking required fields
+storing uploads
+retrieving history
+Those should be normal Django logic.
+This directly addresses the evaluation criterion about minimizing unnecessary AI usage. Full_Stack_Developer_Intern_Task.pdf
+7. Build order — follow this exactly
+Since you have only 48 hours, don't start with the frontend.
+Phase 1 — Backend
+Create:
+backend/
+├── manage.py
+├── config/
+├── chatbot/
+├── media/
+└── bookings/
+Install:
+pip install django djangorestframework django-cors-headers
+Then implement:
+Conversation
+Message
+Diagnosis
+Booking
+Phase 2 — APIs
+Get these working first:
+/api/chat/
+/api/upload/
+/api/diagnosis/
+/api/booking/
+/api/booking/<id>/
+Test everything using Postman/Thunder Client.
+Do not start frontend until these work.
+Phase 3 — AI
+Add Gemini only after the basic APIs work.
+Implement:
+chat validation
+       ↓
+follow-up questions
+       ↓
+diagnosis
+       ↓
+recommendation
+Also put a strong system instruction around the mechanic behavior.
+Phase 4 — Frontend
+Create:
+app/
+├── page.tsx
+├── chat/
+├── history/
+└── booking/
+Main screen:
+┌──────────────────────────────────────┐
+│          🔧 AutoMechanic AI          │
+├──────────────────────────────────────┤
+│                                      │
+│  👤 My car makes a clicking noise    │
+│                                      │
+│  🔧 When does it happen?             │
+│     While turning or all the time?   │
+│                                      │
+│  👤 Mostly while turning left.       │
+│                                      │
+├──────────────────────────────────────┤
+│ 📎  🎤  🎥     Type your problem...  │
+│                              Send ➤  │
+└──────────────────────────────────────┘
+After diagnosis:
+┌──────────────────────────────────────┐
+│ 🔧 Diagnosis                         │
+│                                      │
+│ Possible issue                       │
+│ CV joint / axle problem              │
+│                                      │
+│ Severity: Medium                     │
+│                                      │
+│ Recommended service                  │
+│ CV Joint Inspection                  │
+│                                      │
+│       [ Book Mechanic ]              │
+└──────────────────────────────────────┘
+8. Booking flow
+When user clicks:
+Book Mechanic
+Open:
+Name
+Phone
+Vehicle
+Preferred Date
+Preferred Time
+Service
+Then:
+POST /api/booking/
+Backend saves it in SQLite.
+Show:
+Booking Confirmed ✅
+
+Booking ID: #1042
+
+Service:
+CV Joint Inspection
+
+Date:
+25 September 2026
+
+Time:
+11:00 AM
+The assignment explicitly requires that agreeing to the repair/service should create the mechanic booking through the backend. Full_Stack_Developer_Intern_Task.pdf
+9. Error handling
+This will matter in evaluation.
+Handle:
+400 → Invalid request
+404 → Booking/conversation not found
+413 → File too large
+415 → Unsupported media type
+429 → Gemini/API rate limit
+500 → Internal server error
+Frontend should show proper messages instead of crashing.
+Example:
+⚠️ Something went wrong.
+Please try again.
+10. README
+Your README needs:
+# AI Car Mechanic
+
+## Features
+
+## Architecture
+
+## Tech Stack
+
+## Project Structure
+
+## Environment Variables
+
+## Local Setup
+
+## API Documentation
+
+## Gemini Integration
+
+## Deployment
+
+## Database Schema
+
+## Screenshots
+
+## Live URLs
+The assignment explicitly asks for README setup instructions, API documentation, and a short architecture explanation. Full_Stack_Developer_Intern_Task.pdf
+11. Final architecture
+Use this:
+                    ┌───────────────┐
+                    │    User       │
+                    └───────┬───────┘
+                            │
+                            ▼
+                  ┌──────────────────┐
+                  │ Next.js Frontend │
+                  │     Vercel       │
+                  └────────┬─────────┘
+                           │ REST
+                           ▼
+                ┌──────────────────────┐
+                │ Django REST Backend  │
+                │       AWS            │
+                └──────────┬───────────┘
+                           │
+             ┌─────────────┼──────────────┐
+             ▼             ▼              ▼
+        ┌─────────┐   ┌──────────┐   ┌─────────┐
+        │ SQLite  │   │  Gemini  │   │ Media   │
+        │   DB    │   │   API    │   │ Storage │
+        └─────────┘   └──────────┘   └─────────┘
+Your 48-hour plan
+Time
+Work
+0–4h
+Django project + models
+4–10h
+REST APIs
+10–14h
+Chat logic + follow-up questions
+14–18h
+Gemini diagnosis
+18–22h
+Upload handling
+22–30h
+Next.js chat UI
+30–34h
+Diagnosis + booking UI
+34–38h
+Connect frontend/backend
+38–42h
+Testing + error handling
+42–46h
+Deployment
+46–48h
+README + screenshots + final testing
+Don't over-engineer it. You don't need LangGraph, microservices, PostgreSQL, Redis, Celery, Kubernetes, or a complicated agent architecture for this task. The evaluator explicitly wants unnecessary AI/API usage minimized. Full_Stack_Developer_Intern_Task.pdf
+If you're starting right now, I would begin with Step 1: create the Django backend + models, then we can implement each file/API one by one.
