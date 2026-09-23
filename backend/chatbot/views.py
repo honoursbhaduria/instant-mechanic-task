@@ -18,7 +18,15 @@ import mimetypes
 
 from .models import Conversation, Message, Diagnosis, UploadedMedia
 from .serializers import ConversationSerializer, MessageSerializer, DiagnosisSerializer, UploadedMediaSerializer
-from .logic.validator import is_greeting_only, is_car_related, extract_vehicle_info, get_rejection_reply, get_greeting_reply
+from .logic.validator import (
+    is_greeting_only,
+    is_car_related,
+    extract_vehicle_info,
+    get_rejection_reply,
+    get_greeting_reply,
+    is_security_threat,
+    get_security_rejection_reply
+)
 from .logic.state_tracker import analyze_conversation_state, generate_followup_question
 from .logic.gemini_service import diagnose_with_gemini
 from .logic.vehicle_service import COMMON_MAKES, fetch_models_from_nhtsa
@@ -88,6 +96,23 @@ class ChatView(APIView):
             if detected_vehicle and not conversation.vehicle_info:
                 conversation.vehicle_info = detected_vehicle
                 conversation.save(update_fields=['vehicle_info'])
+
+        # Zero-Trust Fast-Path Security Gate: Prompt Injection / SQLi / Jailbreak
+        if user_message_text and is_security_threat(user_message_text):
+            reply_text = get_security_rejection_reply()
+            Message.objects.create(
+                conversation=conversation,
+                role='assistant',
+                content=reply_text,
+                media_type='text'
+            )
+            return Response({
+                "reply": reply_text,
+                "conversation_id": conversation.id,
+                "needs_more_info": False,
+                "can_diagnose": False,
+                "is_security_refusal": True
+            }, status=status.HTTP_200_OK)
 
         # Case 1: Greeting only
         if user_message_text and is_greeting_only(user_message_text):

@@ -31,3 +31,4 @@ frontend/yarn-error.log*
 # System
 .DS_Store
 Thumbs.db
+node_modules/

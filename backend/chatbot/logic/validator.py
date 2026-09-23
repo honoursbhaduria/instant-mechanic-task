@@ -69,8 +69,25 @@ GREETING_PATTERNS = [
     r'^\s*help\s*me\b',
 ]
 
+SECURITY_PATTERNS = [
+    r'ignore\s+(all\s+)?(previous|prior)\s+instructions',
+    r'you\s+are\s+now\s+(dan|developer\s+mode|unfiltered)',
+    r'pretend\s+(you\s+have\s+no\s+rules|you\s+are\s+not\s+an\s+ai|to\s+be)',
+    r'exfiltrate\s+environment',
+    r'<script\b[^>]*>',
+    r'javascript:',
+    r'\bunion\s+select\b',
+    r'\bdrop\s+table\b',
+    r'\bexec(ute)?\s*\(',
+]
+
+SECURITY_REJECTION = (
+    "Security Alert: Prohibited pattern or prompt injection attempt detected. "
+    "Instant Mechanic operates exclusively under verified automotive diagnostic protocols."
+)
+
 OFF_TOPIC_REJECTION = (
-    "I am an AI Auto Mechanic assistant specialized exclusively in car diagnostics, troubleshooting, "
+    "I am an auto mechanic assistant specialized exclusively in car diagnostics, troubleshooting, "
     "and vehicle maintenance. I can't assist with non-automotive topics. "
     "If you have any issues with your car—such as strange noises, warning lights, poor performance, "
     "or starting problems—please describe what you are experiencing and I'll be glad to help diagnose it!"
@@ -177,8 +194,21 @@ def extract_vehicle_info(text: str) -> str:
     return ""
 
 
+def is_security_threat(text: str) -> bool:
+    """Check for prompt injection, jailbreak attempts, or script/SQL injection."""
+    clean = text.lower()
+    for pat in SECURITY_PATTERNS:
+        if re.search(pat, clean):
+            return True
+    return False
+
+
 def get_rejection_reply() -> str:
     return OFF_TOPIC_REJECTION
+
+
+def get_security_rejection_reply() -> str:
+    return SECURITY_REJECTION
 
 
 def get_greeting_reply() -> str:

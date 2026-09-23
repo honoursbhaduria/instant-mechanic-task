@@ -14,25 +14,25 @@ export default function DiagnosisCard({ diagnosis, onBookMechanic }: DiagnosisCa
     switch (severity.toLowerCase()) {
       case 'high':
         return {
-          bg: 'bg-rose-500/10 text-rose-400 border-rose-500/30',
-          badgeBg: 'bg-rose-500 text-white',
+          bg: 'bg-rose-50 text-rose-700 border-rose-200',
+          badgeBg: 'bg-red-600 text-white',
           icon: ShieldAlert,
           label: 'HIGH SEVERITY',
         };
       case 'low':
         return {
-          bg: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30',
-          badgeBg: 'bg-emerald-500 text-white',
+          bg: 'bg-emerald-50 text-emerald-800 border-emerald-200',
+          badgeBg: 'bg-emerald-600 text-white',
           icon: CheckCircle2,
           label: 'LOW SEVERITY',
         };
       case 'medium':
       default:
         return {
-          bg: 'bg-amber-500/10 text-amber-400 border-amber-500/30',
-          badgeBg: 'bg-amber-500 text-neutral-950 font-bold',
+          bg: 'bg-amber-50 text-amber-900 border-amber-200',
+          badgeBg: 'bg-amber-500 text-stone-950 font-bold',
           icon: AlertTriangle,
-          label: 'MEDIUM SEVERITY',
+          label: 'MODERATE SEVERITY',
         };
     }
   };
@@ -41,81 +41,81 @@ export default function DiagnosisCard({ diagnosis, onBookMechanic }: DiagnosisCa
   const SeverityIcon = config.icon;
 
   return (
-    <div className="my-4 overflow-hidden rounded-2xl border border-neutral-700 bg-neutral-900 shadow-2xl transition-all">
+    <div className="my-4 overflow-hidden rounded-2xl border border-white/80 bg-white/90 backdrop-blur-md shadow-xs transition-all max-w-[95%] sm:max-w-[85%] mx-auto text-left">
       {/* Header bar */}
-      <div className="flex items-center justify-between border-b border-neutral-800 bg-neutral-950/60 px-5 py-3.5">
+      <div className="flex items-center justify-between border-b border-stone-200/80 bg-stone-100/70 px-4 sm:px-5 py-3">
         <div className="flex items-center gap-2.5">
-          <div className="rounded-lg bg-amber-500/20 p-1.5 text-amber-400">
-            <Wrench className="h-5 w-5" />
+          <div className="rounded-xl bg-white border border-stone-200 p-2 text-stone-900 shadow-xs">
+            <Wrench className="h-4 w-4 text-red-600" />
           </div>
           <div>
-            <h3 className="text-sm font-bold tracking-wide text-neutral-100">
-              Diagnostic Assessment
+            <h3 className="text-xs sm:text-sm font-bold tracking-tight text-stone-900 iosevka-charon-bold">
+              Automotive Diagnostic Report
             </h3>
             {diagnosis.vehicle && (
-              <p className="text-xs text-neutral-400">Vehicle: {diagnosis.vehicle}</p>
+              <p className="text-[11px] font-mono font-bold text-stone-600">Vehicle: {diagnosis.vehicle}</p>
             )}
           </div>
         </div>
 
         <div className="flex items-center gap-1.5">
-          <span className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[11px] font-bold ${config.badgeBg}`}>
+          <span className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[10px] font-mono font-bold ${config.badgeBg}`}>
             <SeverityIcon className="h-3 w-3" />
             <span>{config.label}</span>
           </span>
         </div>
       </div>
 
-      <div className="space-y-4 p-5">
+      <div className="space-y-3.5 p-4 sm:p-5">
         {/* Possible Issue */}
         <div>
-          <span className="text-xs font-semibold uppercase tracking-wider text-neutral-400">
-            Possible Issue
+          <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-stone-500">
+            Identified Issue
           </span>
-          <p className="mt-1 text-base font-bold text-white sm:text-lg">
+          <p className="mt-0.5 text-base sm:text-lg font-black text-stone-950 iosevka-charon-bold">
             {diagnosis.diagnosis}
           </p>
         </div>
 
         {/* Reasoning */}
         {diagnosis.reasoning && (
-          <div className="rounded-xl bg-neutral-950/50 p-3.5 border border-neutral-800/80">
-            <span className="text-xs font-semibold uppercase tracking-wider text-neutral-400">
-              Technical Reasoning
+          <div className="rounded-xl bg-stone-50/80 p-3.5 border border-stone-200">
+            <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-stone-600">
+              Technical Analysis & Telemetry
             </span>
-            <p className="mt-1 text-xs text-neutral-300 leading-relaxed sm:text-sm">
+            <p className="mt-1 text-xs text-stone-800 leading-relaxed font-medium">
               {diagnosis.reasoning}
             </p>
           </div>
         )}
 
         {/* Recommended Service */}
-        <div className="rounded-xl border border-amber-500/20 bg-amber-500/5 p-3.5">
-          <span className="text-xs font-semibold uppercase tracking-wider text-amber-400">
-            Recommended Service
+        <div className="rounded-xl border border-stone-200 bg-white p-3.5 shadow-xs">
+          <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-red-600">
+            Recommended Repair / Service
           </span>
-          <p className="mt-0.5 text-sm font-bold text-neutral-100 sm:text-base">
+          <p className="mt-0.5 text-xs sm:text-sm font-bold text-stone-900">
             {diagnosis.service || diagnosis.recommendation}
           </p>
         </div>
 
         {/* Safety Warning */}
         {diagnosis.safety_warning && (
-          <div className="flex items-start gap-2.5 rounded-xl border border-rose-500/20 bg-rose-500/10 p-3 text-xs text-rose-300">
-            <AlertTriangle className="h-4 w-4 shrink-0 text-rose-400 mt-0.5" />
-            <p className="leading-snug">{diagnosis.safety_warning}</p>
+          <div className="flex items-start gap-2 rounded-xl border border-red-200 bg-red-50/80 p-3 text-xs text-red-900">
+            <AlertTriangle className="h-4 w-4 shrink-0 text-red-600 mt-0.5" />
+            <p className="leading-snug font-medium">{diagnosis.safety_warning}</p>
           </div>
         )}
 
-        {/* Action Button */}
+        {/* Action Button: Shining Metal Effect */}
         <div className="pt-2">
           <button
             onClick={() => onBookMechanic(diagnosis)}
-            className="flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 px-5 py-3 text-sm font-bold text-neutral-950 shadow-lg shadow-amber-500/20 transition-all hover:opacity-95 hover:shadow-amber-500/30 active:scale-[0.99]"
+            className="btn-metal-shine flex w-full items-center justify-center gap-2 rounded-xl px-5 py-3 text-xs sm:text-sm font-bold active:scale-[0.99] shadow-sm"
           >
-            <Calendar className="h-4 w-4" />
-            <span>Book Mechanic for This Service</span>
-            <ArrowRight className="h-4 w-4 ml-1" />
+            <Calendar className="h-4 w-4 text-amber-400 relative z-10" />
+            <span className="relative z-10">Dispatch Verified Mechanic for This Service</span>
+            <ArrowRight className="h-4 w-4 ml-1 text-stone-300 relative z-10" />
           </button>
         </div>
       </div>

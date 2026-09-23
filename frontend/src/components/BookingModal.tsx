@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { X, Calendar, Clock, User, Phone, Car, Wrench, CheckCircle, Loader2, ArrowRight } from 'lucide-react';
+import { X, Loader2 } from 'lucide-react';
 import { api, parseApiError, ApiError } from '@/lib/api';
 import { Diagnosis, Booking } from '@/lib/types';
 
@@ -45,13 +45,11 @@ export default function BookingModal({ diagnosis, isOpen, onClose, onBookingSucc
       }
     }
 
-    // Default preferred date to tomorrow's date
     const tomorrow = new Date();
     tomorrow.setDate(tomorrow.getDate() + 1);
     const dateStr = tomorrow.toISOString().split('T')[0];
     setPreferredDate(dateStr);
 
-    // Fetch vehicle makes list for full vehicle database access
     api.getVehicleMakes()
       .then((res) => {
         if (res?.makes) setMakes(res.makes);
@@ -59,7 +57,6 @@ export default function BookingModal({ diagnosis, isOpen, onClose, onBookingSucc
       .catch(() => {});
   }, [diagnosis]);
 
-  // When user selects a make from the vehicle helper dropdown
   useEffect(() => {
     if (!selectedMake) {
       setModels([]);
@@ -80,7 +77,6 @@ export default function BookingModal({ diagnosis, isOpen, onClose, onBookingSucc
     e.preventDefault();
     setError(null);
 
-    // Validation
     if (!customerName.trim() || customerName.trim().length < 2) {
       setError({ status: 400, message: 'Please enter your full name (minimum 2 characters).' });
       return;
@@ -139,114 +135,106 @@ export default function BookingModal({ diagnosis, isOpen, onClose, onBookingSucc
   ];
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-200">
-      <div className="relative w-full max-w-lg rounded-2xl border border-neutral-800 bg-neutral-900 shadow-2xl overflow-hidden max-h-[90vh] flex flex-col">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/40 backdrop-blur-xs animate-in fade-in duration-150">
+      <div className="relative w-full max-w-lg rounded-3xl border border-stone-200/90 bg-[#faf9f5] overflow-hidden max-h-[92vh] flex flex-col text-stone-900 shadow-2xs">
+        
         {/* Header */}
-        <div className="flex items-center justify-between border-b border-neutral-800 bg-neutral-950/80 px-6 py-4">
-          <div className="flex items-center gap-2.5">
-            <div className="rounded-lg bg-amber-500/20 p-2 text-amber-400">
-              <Wrench className="h-5 w-5" />
-            </div>
-            <div>
-              <h2 className="text-lg font-bold text-white">
-                {confirmedBooking ? 'Booking Confirmed' : 'Book a Certified Mechanic'}
-              </h2>
-              <p className="text-xs text-neutral-400">
-                {confirmedBooking
-                  ? 'Your service request has been registered.'
-                  : 'Fast doorstep or garage repair dispatch'}
-              </p>
-            </div>
+        <div className="flex items-center justify-between border-b border-stone-200/80 bg-white/80 backdrop-blur-md px-5 sm:px-6 py-4">
+          <div>
+            <h2 className="text-base sm:text-lg font-bold text-black iosevka-charon-bold tracking-tight">
+              {confirmedBooking ? 'Booking Confirmed' : 'Book a Certified Mechanic'}
+            </h2>
+            <p className="text-xs text-stone-500 mt-0.5">
+              {confirmedBooking
+                ? 'Your service request has been registered.'
+                : 'Fast doorstep or garage repair dispatch across Delhi NCR'}
+            </p>
           </div>
 
           <button
             onClick={handleClose}
-            className="rounded-lg p-1.5 text-neutral-400 hover:bg-neutral-800 hover:text-white transition-colors"
+            className="rounded-full p-1.5 text-stone-400 hover:bg-stone-100 hover:text-black transition-colors"
+            title="Close"
           >
             <X className="h-5 w-5" />
           </button>
         </div>
 
         {/* Modal Body */}
-        <div className="overflow-y-auto p-6 space-y-4">
+        <div className="overflow-y-auto p-5 sm:p-6 space-y-4">
           {/* Success Screen */}
           {confirmedBooking ? (
-            <div className="space-y-6 text-center py-4">
-              <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-emerald-500/20 text-emerald-400 ring-8 ring-emerald-500/10">
-                <CheckCircle className="h-10 w-10" />
-              </div>
-
+            <div className="space-y-5 text-center py-2">
               <div>
-                <h3 className="text-2xl font-extrabold text-white">
-                  Booking Confirmed ✅
+                <h3 className="text-xl sm:text-2xl font-bold text-black iosevka-charon-bold">
+                  Booking Confirmed
                 </h3>
-                <p className="mt-1 text-sm text-neutral-400">
-                  Our mechanic team has received your service appointment.
+                <p className="mt-1 text-xs text-stone-500">
+                  Our mechanic will contact you prior to arrival.
                 </p>
               </div>
 
               {/* Booking Summary Box */}
-              <div className="rounded-xl border border-neutral-800 bg-neutral-950/70 p-5 text-left space-y-3">
-                <div className="flex justify-between items-center pb-2 border-b border-neutral-800/80">
-                  <span className="text-xs font-medium text-neutral-400">Booking ID:</span>
-                  <span className="font-mono text-base font-bold text-amber-400">
+              <div className="rounded-2xl border border-stone-200 bg-white p-4 sm:p-5 text-left space-y-2.5">
+                <div className="flex justify-between items-center pb-2 border-b border-stone-100">
+                  <span className="text-xs font-mono text-stone-500">Booking ID:</span>
+                  <span className="font-mono text-sm font-bold text-black">
                     #{confirmedBooking.id}
                   </span>
                 </div>
 
-                <div className="flex justify-between items-center pb-2 border-b border-neutral-800/80">
-                  <span className="text-xs font-medium text-neutral-400">Service:</span>
-                  <span className="text-xs font-bold text-neutral-100 text-right max-w-[240px]">
+                <div className="flex justify-between items-center pb-2 border-b border-stone-100">
+                  <span className="text-xs font-mono text-stone-500">Service:</span>
+                  <span className="text-xs font-bold text-stone-900 text-right max-w-[220px]">
                     {confirmedBooking.service}
                   </span>
                 </div>
 
-                <div className="flex justify-between items-center pb-2 border-b border-neutral-800/80">
-                  <span className="text-xs font-medium text-neutral-400">Customer:</span>
-                  <span className="text-xs font-semibold text-neutral-200">
+                <div className="flex justify-between items-center pb-2 border-b border-stone-100">
+                  <span className="text-xs font-mono text-stone-500">Customer:</span>
+                  <span className="text-xs font-bold text-stone-900">
                     {confirmedBooking.customer_name} ({confirmedBooking.phone})
                   </span>
                 </div>
 
-                <div className="flex justify-between items-center pb-2 border-b border-neutral-800/80">
-                  <span className="text-xs font-medium text-neutral-400">Vehicle:</span>
-                  <span className="text-xs font-semibold text-neutral-200">
+                <div className="flex justify-between items-center pb-2 border-b border-stone-100">
+                  <span className="text-xs font-mono text-stone-500">Vehicle:</span>
+                  <span className="text-xs font-bold text-stone-900">
                     {confirmedBooking.vehicle}
                   </span>
                 </div>
 
                 <div className="grid grid-cols-2 gap-3 pt-1">
                   <div>
-                    <span className="text-[11px] text-neutral-400 block">Date</span>
-                    <span className="text-xs font-bold text-amber-300">
+                    <span className="text-[10px] font-mono text-stone-400 block uppercase">Date</span>
+                    <span className="text-xs font-bold text-stone-900">
                       {confirmedBooking.preferred_date}
                     </span>
                   </div>
                   <div>
-                    <span className="text-[11px] text-neutral-400 block">Time</span>
-                    <span className="text-xs font-bold text-amber-300">
+                    <span className="text-[10px] font-mono text-stone-400 block uppercase">Time</span>
+                    <span className="text-xs font-bold text-stone-900">
                       {confirmedBooking.preferred_time}
                     </span>
                   </div>
                 </div>
               </div>
 
-              <div className="flex flex-col sm:flex-row gap-3">
+              <div className="flex flex-col sm:flex-row gap-2.5 pt-2">
                 <button
                   type="button"
                   onClick={() => {
                     handleClose();
                     router.push(`/booking/${confirmedBooking.id}`);
                   }}
-                  className="flex-1 flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 px-4 py-2.5 text-sm font-bold text-neutral-950 shadow-md transition-transform active:scale-95"
+                  className="btn-metal-shine flex-1 inline-flex items-center justify-center rounded-xl px-4 py-2.5 text-xs sm:text-sm font-bold active:scale-95"
                 >
-                  <span>View Full Details</span>
-                  <ArrowRight className="h-4 w-4" />
+                  <span className="relative z-10">View Full Details</span>
                 </button>
                 <button
                   type="button"
                   onClick={handleClose}
-                  className="rounded-xl border border-neutral-800 px-4 py-2.5 text-sm font-semibold text-neutral-300 hover:bg-neutral-800 transition-colors"
+                  className="rounded-xl border border-stone-300 bg-white px-4 py-2.5 text-xs sm:text-sm font-semibold text-stone-700 hover:bg-stone-50 transition-colors"
                 >
                   Back to Chat
                 </button>
@@ -256,95 +244,77 @@ export default function BookingModal({ diagnosis, isOpen, onClose, onBookingSucc
             /* Booking Form */
             <form onSubmit={handleSubmit} className="space-y-4">
               {error && (
-                <div className="rounded-xl border border-rose-500/30 bg-rose-500/10 p-3 text-xs text-rose-300">
+                <div className="rounded-xl border border-rose-200 bg-rose-50 p-3 text-xs text-rose-800">
                   {error.message}
                 </div>
               )}
 
               {/* Service Title */}
               <div>
-                <label className="block text-xs font-semibold uppercase tracking-wider text-neutral-400 mb-1.5">
+                <label className="block text-[11px] font-mono font-bold uppercase tracking-wider text-stone-600 mb-1.5">
                   Service / Repair Needed
                 </label>
-                <div className="relative">
-                  <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3 text-neutral-500">
-                    <Wrench className="h-4 w-4" />
-                  </div>
-                  <input
-                    type="text"
-                    required
-                    value={service}
-                    onChange={(e) => setService(e.target.value)}
-                    className="w-full rounded-xl border border-neutral-800 bg-neutral-950/80 py-2.5 pl-10 pr-3 text-sm text-white placeholder-neutral-500 focus:border-amber-500 focus:outline-none"
-                    placeholder="e.g. CV Joint Inspection"
-                  />
-                </div>
+                <input
+                  type="text"
+                  required
+                  value={service}
+                  onChange={(e) => setService(e.target.value)}
+                  className="w-full rounded-xl border border-stone-300 bg-white px-3.5 py-2.5 text-xs sm:text-sm text-stone-900 placeholder-stone-400 focus:border-stone-500 focus:outline-none"
+                  placeholder="CV Joint & Axle Inspection / Replacement"
+                />
               </div>
 
               {/* Customer Name & Phone */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs font-semibold uppercase tracking-wider text-neutral-400 mb-1.5">
+                  <label className="block text-[11px] font-mono font-bold uppercase tracking-wider text-stone-600 mb-1.5">
                     Your Full Name
                   </label>
-                  <div className="relative">
-                    <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3 text-neutral-500">
-                      <User className="h-4 w-4" />
-                    </div>
-                    <input
-                      type="text"
-                      required
-                      value={customerName}
-                      onChange={(e) => setCustomerName(e.target.value)}
-                      className="w-full rounded-xl border border-neutral-800 bg-neutral-950/80 py-2.5 pl-10 pr-3 text-sm text-white placeholder-neutral-500 focus:border-amber-500 focus:outline-none"
-                      placeholder="e.g. Honours"
-                    />
-                  </div>
+                  <input
+                    type="text"
+                    required
+                    value={customerName}
+                    onChange={(e) => setCustomerName(e.target.value)}
+                    className="w-full rounded-xl border border-stone-300 bg-white px-3.5 py-2.5 text-xs sm:text-sm text-stone-900 placeholder-stone-400 focus:border-stone-500 focus:outline-none"
+                    placeholder="e.g. Honours"
+                  />
                 </div>
 
                 <div>
-                  <label className="block text-xs font-semibold uppercase tracking-wider text-neutral-400 mb-1.5">
+                  <label className="block text-[11px] font-mono font-bold uppercase tracking-wider text-stone-600 mb-1.5">
                     Phone Number
                   </label>
-                  <div className="relative">
-                    <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3 text-neutral-500">
-                      <Phone className="h-4 w-4" />
-                    </div>
-                    <input
-                      type="tel"
-                      required
-                      value={phone}
-                      onChange={(e) => setPhone(e.target.value)}
-                      className="w-full rounded-xl border border-neutral-800 bg-neutral-950/80 py-2.5 pl-10 pr-3 text-sm text-white placeholder-neutral-500 focus:border-amber-500 focus:outline-none"
-                      placeholder="e.g. 9876543210"
-                    />
-                  </div>
+                  <input
+                    type="tel"
+                    required
+                    value={phone}
+                    onChange={(e) => setPhone(e.target.value)}
+                    className="w-full rounded-xl border border-stone-300 bg-white px-3.5 py-2.5 text-xs sm:text-sm text-stone-900 placeholder-stone-400 focus:border-stone-500 focus:outline-none"
+                    placeholder="e.g. 9876543210"
+                  />
                 </div>
               </div>
 
-              {/* Vehicle input + NHTSA Quick Vehicle Database Selector */}
+              {/* Vehicle input */}
               <div>
-                <label className="block text-xs font-semibold uppercase tracking-wider text-neutral-400 mb-1.5">
+                <label className="block text-[11px] font-mono font-bold uppercase tracking-wider text-stone-600 mb-1.5">
                   Vehicle Make & Model
                 </label>
-                <div className="relative mb-2">
-                  <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3 text-neutral-500">
-                    <Car className="h-4 w-4" />
-                  </div>
+                <div className="mb-2">
                   <input
                     type="text"
                     required
                     value={vehicle}
                     onChange={(e) => setVehicle(e.target.value)}
-                    className="w-full rounded-xl border border-neutral-800 bg-neutral-950/80 py-2.5 pl-10 pr-3 text-sm text-white placeholder-neutral-500 focus:border-amber-500 focus:outline-none"
+                    className="w-full rounded-xl border border-stone-300 bg-white px-3.5 py-2.5 text-xs sm:text-sm text-stone-900 placeholder-stone-400 focus:border-stone-500 focus:outline-none"
                     placeholder="e.g. Hyundai Creta 2022"
                   />
                 </div>
 
                 {/* Optional NHTSA Vehicle Selector */}
-                <div className="rounded-xl border border-neutral-800/80 bg-neutral-950/40 p-2.5 text-xs space-y-2">
-                  <span className="text-[11px] font-medium text-neutral-400">
-                    Select from vehicle database (NHTSA):
+                <div className="rounded-xl border border-stone-200 bg-stone-50 p-2.5 text-xs space-y-1.5">
+                  <span className="text-[10px] font-mono text-stone-500 block">
+                    Or select from vehicle database (NHTSA):
                   </span>
                   <div className="grid grid-cols-2 gap-2">
                     <select
@@ -354,7 +324,7 @@ export default function BookingModal({ diagnosis, isOpen, onClose, onBookingSucc
                         setSelectedMake(m);
                         if (m) setVehicle(m);
                       }}
-                      className="rounded-lg border border-neutral-800 bg-neutral-900 px-2.5 py-1.5 text-xs text-neutral-200 focus:border-amber-500 focus:outline-none"
+                      className="rounded-lg border border-stone-300 bg-white px-2.5 py-1.5 text-xs text-stone-800 focus:border-stone-500 focus:outline-none"
                     >
                       <option value="">Choose Make...</option>
                       {makes.map((m) => (
@@ -371,7 +341,7 @@ export default function BookingModal({ diagnosis, isOpen, onClose, onBookingSucc
                           setVehicle(`${selectedMake} ${e.target.value}`);
                         }
                       }}
-                      className="rounded-lg border border-neutral-800 bg-neutral-900 px-2.5 py-1.5 text-xs text-neutral-200 focus:border-amber-500 focus:outline-none disabled:opacity-40"
+                      className="rounded-lg border border-stone-300 bg-white px-2.5 py-1.5 text-xs text-stone-800 focus:border-stone-500 focus:outline-none disabled:opacity-40"
                     >
                       <option value="">
                         {loadingModels ? 'Loading models...' : 'Choose Model...'}
@@ -389,49 +359,39 @@ export default function BookingModal({ diagnosis, isOpen, onClose, onBookingSucc
               {/* Preferred Date & Time */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs font-semibold uppercase tracking-wider text-neutral-400 mb-1.5">
+                  <label className="block text-[11px] font-mono font-bold uppercase tracking-wider text-stone-600 mb-1.5">
                     Preferred Date
                   </label>
-                  <div className="relative">
-                    <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3 text-neutral-500">
-                      <Calendar className="h-4 w-4" />
-                    </div>
-                    <input
-                      type="date"
-                      required
-                      value={preferredDate}
-                      onChange={(e) => setPreferredDate(e.target.value)}
-                      className="w-full rounded-xl border border-neutral-800 bg-neutral-950/80 py-2.5 pl-10 pr-3 text-sm text-white focus:border-amber-500 focus:outline-none"
-                    />
-                  </div>
+                  <input
+                    type="date"
+                    required
+                    value={preferredDate}
+                    onChange={(e) => setPreferredDate(e.target.value)}
+                    className="w-full rounded-xl border border-stone-300 bg-white px-3.5 py-2 text-xs sm:text-sm text-stone-900 focus:border-stone-500 focus:outline-none"
+                  />
                 </div>
 
                 <div>
-                  <label className="block text-xs font-semibold uppercase tracking-wider text-neutral-400 mb-1.5">
+                  <label className="block text-[11px] font-mono font-bold uppercase tracking-wider text-stone-600 mb-1.5">
                     Preferred Time Slot
                   </label>
-                  <div className="relative">
-                    <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3 text-neutral-500">
-                      <Clock className="h-4 w-4" />
-                    </div>
-                    <select
-                      value={preferredTime}
-                      onChange={(e) => setPreferredTime(e.target.value)}
-                      className="w-full rounded-xl border border-neutral-800 bg-neutral-950/80 py-2.5 pl-10 pr-3 text-sm text-white focus:border-amber-500 focus:outline-none"
-                    >
-                      {availableTimes.map((t) => (
-                        <option key={t} value={t}>
-                          {t}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
+                  <select
+                    value={preferredTime}
+                    onChange={(e) => setPreferredTime(e.target.value)}
+                    className="w-full rounded-xl border border-stone-300 bg-white px-3.5 py-2 text-xs sm:text-sm text-stone-900 focus:border-stone-500 focus:outline-none"
+                  >
+                    {availableTimes.map((t) => (
+                      <option key={t} value={t}>
+                        {t}
+                      </option>
+                    ))}
+                  </select>
                 </div>
               </div>
 
               {/* Additional Notes */}
               <div>
-                <label className="block text-xs font-semibold uppercase tracking-wider text-neutral-400 mb-1.5">
+                <label className="block text-[11px] font-mono font-bold uppercase tracking-wider text-stone-600 mb-1.5">
                   Additional Notes (Optional)
                 </label>
                 <textarea
@@ -439,7 +399,7 @@ export default function BookingModal({ diagnosis, isOpen, onClose, onBookingSucc
                   value={notes}
                   onChange={(e) => setNotes(e.target.value)}
                   placeholder="e.g. Please check both front axles and bring brake pads."
-                  className="w-full rounded-xl border border-neutral-800 bg-neutral-950/80 p-3 text-xs text-white placeholder-neutral-500 focus:border-amber-500 focus:outline-none"
+                  className="w-full rounded-xl border border-stone-300 bg-white p-3 text-xs text-stone-900 placeholder-stone-400 focus:border-stone-500 focus:outline-none"
                 />
               </div>
 
@@ -448,18 +408,17 @@ export default function BookingModal({ diagnosis, isOpen, onClose, onBookingSucc
                 <button
                   type="submit"
                   disabled={isSubmitting}
-                  className="flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 px-5 py-3 text-sm font-bold text-neutral-950 shadow-lg shadow-amber-500/20 transition-all hover:opacity-95 disabled:opacity-50 active:scale-[0.99]"
+                  className="btn-metal-shine w-full inline-flex items-center justify-center rounded-xl py-3 px-5 text-xs sm:text-sm font-bold active:scale-[0.99] disabled:opacity-50"
                 >
                   {isSubmitting ? (
-                    <>
+                    <span className="relative z-10 flex items-center gap-2">
                       <Loader2 className="h-4 w-4 animate-spin" />
-                      <span>Confirming Booking...</span>
-                    </>
+                      Confirming Booking...
+                    </span>
                   ) : (
-                    <>
-                      <CheckCircle className="h-4 w-4" />
-                      <span>Confirm & Book Mechanic</span>
-                    </>
+                    <span className="relative z-10">
+                      Confirm & Book Mechanic
+                    </span>
                   )}
                 </button>
               </div>

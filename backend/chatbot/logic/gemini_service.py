@@ -183,25 +183,32 @@ Return ONLY a valid JSON object with EXACTLY this structure (no additional pream
         import google.generativeai as genai
         genai.configure(api_key=api_key)
 
-        # Use gemini-1.5-flash or gemini-2.5-flash or gemini-pro
-        model = genai.GenerativeModel(
-            model_name="gemini-1.5-flash",
-            generation_config={"temperature": 0.2, "response_mime_type": "application/json"}
-        )
+        candidate_models = ["gemini-2.5-flash", "gemini-flash-latest", "gemini-2.5-flash-lite"]
+        data = None
 
-        response = model.generate_content(prompt)
-        text_resp = response.text.strip()
-        data = extract_json_from_text(text_resp)
+        for m_name in candidate_models:
+            try:
+                model = genai.GenerativeModel(
+                    model_name=m_name,
+                    generation_config={"temperature": 0.2, "response_mime_type": "application/json"}
+                )
+                response = model.generate_content(prompt)
+                text_resp = response.text.strip()
+                parsed = extract_json_from_text(text_resp)
+                required_keys = ["possible_issue", "reasoning", "severity", "recommended_service", "safety_warning"]
+                if all(k in parsed for k in required_keys):
+                    data = parsed
+                    break
+            except Exception as model_err:
+                logger.warning(f"Error with model {m_name}: {model_err}")
+                continue
 
-        # Validate that required keys exist
-        required_keys = ["possible_issue", "reasoning", "severity", "recommended_service", "safety_warning"]
-        if all(k in data for k in required_keys):
-            # Normalize severity
+        if data:
             if data["severity"] not in ["low", "medium", "high"]:
                 data["severity"] = "medium"
             return data
         else:
-            logger.warning(f"Gemini returned incomplete JSON: {text_resp}. Using fallback diagnosis.")
+            logger.warning("All Gemini candidate models failed or returned incomplete JSON. Using rule-based fallback.")
             return run_fallback_diagnosis(vehicle, symptoms, conditions)
 
     except Exception as e:

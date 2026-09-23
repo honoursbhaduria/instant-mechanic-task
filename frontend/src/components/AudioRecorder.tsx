@@ -102,42 +102,42 @@ export default function AudioRecorder({ onAudioUploaded, onError, onCancel }: Au
   };
 
   return (
-    <div className="flex items-center justify-between gap-3 rounded-xl border border-rose-500/30 bg-neutral-900/90 px-4 py-2.5 shadow-lg backdrop-blur-md">
+    <div className="flex items-center justify-between gap-3 rounded-full border border-red-200 bg-white px-4 py-2 shadow-sm w-full">
       <div className="flex items-center gap-3">
         <div className="relative flex h-3 w-3">
-          <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-rose-400 opacity-75" />
-          <span className="relative inline-flex h-3 w-3 rounded-full bg-rose-500" />
+          <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-red-400 opacity-75" />
+          <span className="relative inline-flex h-3 w-3 rounded-full bg-red-600" />
         </div>
         <div className="flex items-center gap-2">
-          <span className="text-sm font-semibold text-rose-300">
-            {isUploading ? 'Uploading Audio...' : 'Recording Sound...'}
+          <span className="text-xs font-semibold text-red-600">
+            {isUploading ? 'Uploading Audio...' : 'Recording Engine Audio...'}
           </span>
-          <span className="font-mono text-xs text-neutral-400">{formatDuration(duration)}</span>
+          <span className="font-mono text-xs font-bold text-stone-700">{formatDuration(duration)}</span>
         </div>
       </div>
 
       <div className="flex items-center gap-2">
         {isUploading ? (
-          <div className="flex items-center gap-2 text-xs text-amber-400">
-            <Loader2 className="h-4 w-4 animate-spin" />
+          <div className="flex items-center gap-2 text-xs font-mono font-bold text-red-600">
+            <Loader2 className="h-4 w-4 animate-spin text-red-600" />
             <span>Analyzing...</span>
           </div>
         ) : (
           <>
             <button
               onClick={cancelRecording}
-              className="rounded-lg p-1.5 text-neutral-400 hover:bg-neutral-800 hover:text-neutral-200 transition-colors"
-              title="Cancel recording"
+              className="rounded-full p-1.5 text-stone-500 hover:bg-stone-100 hover:text-red-600 transition-colors"
+              title="Delete recording"
             >
               <Trash2 className="h-4 w-4" />
             </button>
             <button
               onClick={stopAndSend}
-              className="flex items-center gap-1.5 rounded-lg bg-rose-600 px-3 py-1.5 text-xs font-semibold text-white shadow-md hover:bg-rose-500 transition-colors"
-              title="Send audio recording"
+              className="btn-metal-shine flex items-center gap-1.5 rounded-full px-3.5 py-1.5 text-xs font-bold active:scale-95 shadow-xs"
+              title="Send audio note"
             >
-              <Send className="h-3.5 w-3.5" />
-              <span>Send Audio</span>
+              <Send className="h-3 w-3 relative z-10" />
+              <span className="relative z-10">Send Audio</span>
             </button>
           </>
         )}

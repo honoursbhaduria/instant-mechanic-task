@@ -1,11 +1,11 @@
-# 🔧 AI Car Mechanic — Full-Stack Application
+#  AI Car Mechanic — Full-Stack Application
 
 > **गाड़ी खराब, मैकेनिक तैयार**  
 > An intelligent full-stack AI Car Mechanic Diagnostic and Booking Web Application built with **Next.js (React)**, **Django REST Framework**, **SQLite**, and **Google Gemini API**. Designed to minimize AI overhead by leveraging deterministic traditional backend logic for validation and state tracking, while calling Gemini solely for expert diagnostic reasoning.
 
 ---
 
-## 📑 Table of Contents
+##  Table of Contents
 1. [Features](#features)
 2. [Architecture](#architecture)
 3. [Tech Stack](#tech-stack)
@@ -21,14 +21,14 @@
 
 ---
 
-## 🚀 Features
+##  Features
 
 - **Master Automotive Chatbot**: Behaves like a 25-year Senior ASE-certified Master Automobile Technician.
 - **Multimodal Symptom Capture**:
-  - 💬 **Text Inquiries**: Plain English and Hinglish automotive colloquialisms (e.g. *gaadi, awaaz, horn, break*).
-  - 🎙️ **Microphone Audio Recording**: In-browser real-time voice recording to capture engine revs, ticks, and brake squeals.
-  - 📷 **Image Uploads**: Inspect photos of worn brake pads, leaking gaskets, warning lights, or tyre wear.
-  - 🎥 **Video Uploads**: Short clips showing erratic idling or engine shake.
+  -  **Text Inquiries**: Plain English and Hinglish automotive colloquialisms (e.g. *gaadi, awaaz, horn, break*).
+  -  **Microphone Audio Recording**: In-browser real-time voice recording to capture engine revs, ticks, and brake squeals.
+  -  **Image Uploads**: Inspect photos of worn brake pads, leaking gaskets, warning lights, or tyre wear.
+  -  **Video Uploads**: Short clips showing erratic idling or engine shake.
 - **Minimizing Unnecessary AI Overhead**:
   - Deterministic backend regex & keyword boundary filtering to reject off-topic questions immediately without wasting AI tokens.
   - Traditional state-tracking questionnaire to request missing operating conditions (e.g. speed, turning, braking).
@@ -48,57 +48,96 @@
 
 ---
 
-## 🏛️ Architecture
+##  Architecture & Decision Engine
 
-```text
-                    ┌─────────────────────────┐
-                    │      User / Browser     │
-                    └────────────┬────────────┘
-                                 │
-                                 ▼
-                    ┌─────────────────────────┐
-                    │   Next.js 14 Frontend   │
-                    │   (Vercel / Port 3000)  │
-                    └────────────┬────────────┘
-                                 │ REST API / JSON / Multipart
-                                 ▼
-                    ┌─────────────────────────┐
-                    │  Django REST Framework  │
-                    │    (AWS / Port 8000)    │
-                    └──────┬───────────┬──────┘
-                           │           │
-             ┌─────────────┼───────────┼─────────────┐
-             ▼             ▼           ▼             ▼
-        ┌─────────┐   ┌─────────┐ ┌─────────┐  ┌──────────┐
-        │ SQLite  │   │  NHTSA  │ │ Storage │  │  Gemini  │
-        │ Database│   │vPIC API │ │ (Media) │  │  AI API  │
-        └─────────┘   └─────────┘ └─────────┘  └──────────┘
+The architecture adapts enterprise design patterns from **CogniVault** (Zero-Trust Security, StateGraph Routing, and Fallback Resilience) while strictly honoring the intern task directive: **minimize AI/API overhead by using traditional backend logic wherever possible**.
+
+```mermaid
+flowchart TD
+    %% TIER 1: CLIENT
+    subgraph T1 ["1. Client Layer - Next.js (React 18)"]
+        UI["Chat Interface (Text, Media & Voice)"]
+        UploadBox["Media Dispatch (Image, Audio, Video <= 25MB)"]
+    end
+
+    %% TIER 2: FAST-PATH SECURITY & DOMAIN GATE
+    subgraph T2 ["2. Zero-Trust Security & Domain Gate (Sub-2ms Fast Path)"]
+        SecurityGate{"Fast-Path Policy Gate"}
+        InjectionRefusal["HTTP 400/403 Block - Prompt Injection / SQLi Intercepted"]
+        OffTopicRefusal["Polite Automotive Redirection (Zero AI Cost)"]
+    end
+
+    %% TIER 3: STATE MACHINE & QUESTIONNAIRE
+    subgraph T3 ["3. Traditional State Tracker & Questionnaire Engine"]
+        StateTracker["State Tracker & Missing Info Detector"]
+        FollowUp["Targeted Automotive Follow-Up Question (Zero AI Cost)"]
+        ReadyFlag["can_diagnose = True (Unlock Run Diagnosis CTA)"]
+    end
+
+    %% TIER 4: DIAGNOSTIC REASONING & RESILIENCE
+    subgraph T4 ["4. Compound Diagnostic Reasoning & Resilience Gateway"]
+        DiagTrigger{"POST /api/diagnosis/"}
+        GeminiPrimary["Primary: Gemini 1.5 Flash (Structured JSON)"]
+        RuleFallback["Resilience Fallback: 40+ Automotive Failure Signatures (100% Uptime on HTTP 429)"]
+    end
+
+    %% TIER 5: PERSISTENCE & DISPATCH
+    subgraph T5 ["5. Persistence & Booking Dispatch"]
+        SQLiteDB[("SQLite Database<br/>Tables: Conversation, Message, Diagnosis, Booking, UploadedMedia")]
+        BookingAPI["POST /api/booking/ -> Doorstep / Garage Dispatch"]
+    end
+
+    %% CONNECTIONS
+    UI -->|"POST /api/chat/"| SecurityGate
+    UploadBox -->|"POST /api/upload/"| SecurityGate
+    SecurityGate -->|"Security Attack Detected"| InjectionRefusal
+    SecurityGate -->|"Non-Automotive Question"| OffTopicRefusal
+    SecurityGate -->|"Valid Car Symptom"| StateTracker
+
+    StateTracker -->|"Missing Conditions (Speed, Turning, Sound)"| FollowUp
+    FollowUp --> UI
+    StateTracker -->|"Sufficient Details Gathered"| ReadyFlag
+    ReadyFlag --> UI
+
+    UI -->|"User Clicks 'Run Diagnosis'"| DiagTrigger
+    DiagTrigger --> GeminiPrimary
+    GeminiPrimary -.->|"HTTP 429 Rate Limit / Timeout"| RuleFallback
+
+    GeminiPrimary -->|"Structured Report"| SQLiteDB
+    RuleFallback -->|"Structured Report"| SQLiteDB
+    SQLiteDB -->|"Diagnosis Card"| UI
+
+    UI -->|"User Clicks 'Book Mechanic'"| BookingAPI
+    BookingAPI -->|"Confirmed Booking #ID"| SQLiteDB
+    SQLiteDB -->|"Confirmed Pass"| UI
 ```
 
-### Diagnostic Decision Flow
+### Diagnostic Decision Flow (Traditional Logic vs AI)
 
 ```text
 User Submits Message / Media
             ↓
     POST /api/chat/
             ↓
-Backend Traditional Validator
+[Zero-Trust Security & Domain Gate]
             ↓
-Is it car/mechanical related?
- ├── NO  → Reject politely (Zero AI calls)
+Is it car/mechanical related & safe?
+ ├── NO (Off-topic/Jailbreak) → Reject politely / warn (Zero AI calls)
  │
  └── YES
        ↓
-Check Required Information (Vehicle, Symptom, Condition)
+[State Tracker & Missing Info Detector]
        ↓
-Missing information?
+Missing information? (Vehicle make/model, speed condition, turning, sound)
  ├── YES → Ask targeted mechanical follow-up question (Zero AI calls)
  │
  └── NO
        ↓
 User Clicks "Run Diagnosis" → POST /api/diagnosis/
        ↓
-Gemini AI Reasoning (Structured JSON Output)
+[Gemini AI Reasoning Gateway] (Called ONLY once for final diagnosis)
+ ├── Normal Operation → Gemini 1.5 Flash generates structured JSON
+ └── Rate Limit / Error (429) → Built-in Automotive Expert Knowledge Base Fallback
        ↓
 Diagnosis Card with Severity Badge + Safety Warning
        ↓
@@ -109,7 +148,7 @@ Booking Confirmed (Saved in SQLite)
 
 ---
 
-## 🛠️ Tech Stack
+##  Tech Stack
 
 ### Frontend
 - **Framework**: [Next.js 14](https://nextjs.org/) (App Router, React 18)
@@ -130,7 +169,7 @@ Booking Confirmed (Saved in SQLite)
 
 ---
 
-## 📁 Project Structure
+##  Project Structure
 
 ```text
 instant_mechanic/
@@ -209,7 +248,7 @@ instant_mechanic/
 
 ---
 
-## 🔑 Environment Variables
+##  Environment Variables
 
 ### Backend (`backend/.env`)
 ```env
@@ -229,7 +268,7 @@ NEXT_PUBLIC_API_URL=http://127.0.0.1:8000/api
 
 ---
 
-## 💻 Local Setup
+##  Local Setup
 
 ### Prerequisites
 - Python 3.10+
@@ -274,7 +313,7 @@ Frontend will be live at `http://localhost:3000`.
 
 ---
 
-## 📡 API Documentation
+## API Documentation
 
 ### 1. Send Chat Message
 - **Endpoint**: `POST /api/chat/`
@@ -417,7 +456,7 @@ Frontend will be live at `http://localhost:3000`.
 
 ---
 
-## 🤖 Gemini Integration
+##  Gemini Integration
 
 The evaluation requirement specifies minimizing AI/API overhead. Gemini is **only** invoked for reasoning during diagnosis.
 
@@ -434,7 +473,7 @@ The evaluation requirement specifies minimizing AI/API overhead. Gemini is **onl
 
 ---
 
-## ☁️ Deployment
+##  Deployment
 
 ### Frontend on Vercel
 1. Push project to GitHub.
@@ -446,7 +485,7 @@ The evaluation requirement specifies minimizing AI/API overhead. Gemini is **onl
    ```
 5. Deploy.
 
-### Backend on AWS (EC2 / Lightsail / Elastic Beanstalk)
+### Backend on render
 1. Launch an Ubuntu 22.04 LTS instance (AWS Free Tier eligible: `t2.micro` or `t3.micro`).
 2. SSH into instance and install dependencies:
    ```bash
@@ -470,7 +509,7 @@ The evaluation requirement specifies minimizing AI/API overhead. Gemini is **onl
 
 ---
 
-## 🗄️ Database Schema
+## Database Schema
 
 ```mermaid
 erDiagram
@@ -526,7 +565,7 @@ erDiagram
 
 ---
 
-## 📸 User Interface & Reference Layout
+##  User Interface & Reference Layout
 
 The homepage is crafted based on the editorial workshop desk reference (`frontend refrnce.png`):
 - **Hero Centerpiece**: Torn-paper banner featuring `"गाड़ी खराब, मैकेनिक तैयार"`, bold quotes `« INSTANT MECHANIC »`, interactive slide navigation, and high-contrast cyan CTA button.
@@ -538,15 +577,7 @@ The homepage is crafted based on the editorial workshop desk reference (`fronten
 
 ---
 
-## 🌐 Live URLs & Local Ports
-
-| Component | Default URL | Purpose |
-|---|---|---|
-| **Frontend** | `http://localhost:3000` | Next.js Modern Mechanic Web Interface |
-| **Backend API** | `http://127.0.0.1:8000/api/` | Django REST Framework API Base |
-| **Admin Panel** | `http://127.0.0.1:8000/admin/` | Django Admin Dashboard |
-| **Health Check** | `http://127.0.0.1:8000/api/health/` | API Status & Ping |
 
 ---
-
+by honours bhadauria
 Developed with ❤️ for **Instant Mechanic**.

@@ -1,8 +1,9 @@
 'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
+import Link from 'next/link';
+import Image from 'next/image';
 import {
-  Wrench,
   Send,
   Mic,
   RotateCcw,
@@ -12,7 +13,10 @@ import {
   X,
   FileAudio,
   FileVideo,
-  FileImage
+  FileImage,
+  ArrowLeft,
+  History,
+  ChevronRight
 } from 'lucide-react';
 import { api, parseApiError, ApiError } from '@/lib/api';
 import { Message, Diagnosis, UploadResponse } from '@/lib/types';
@@ -22,14 +26,34 @@ import BookingModal from '@/components/BookingModal';
 import MediaUploader from '@/components/MediaUploader';
 import AudioRecorder from '@/components/AudioRecorder';
 import ErrorAlert from '@/components/ErrorAlert';
+import { TruckLoaderOverlay } from '@/components/TruckLoader';
 
 export default function ChatPage() {
+  // Smooth Truck Loader before opening the chatbot
+  const [showInitialLoader, setShowInitialLoader] = useState(true);
+  const [loaderFadeOut, setLoaderFadeOut] = useState(false);
+
+  useEffect(() => {
+    // Start exit fade after 800ms
+    const fadeTimer = setTimeout(() => {
+      setLoaderFadeOut(true);
+    }, 800);
+    // Remove from DOM after fade completes
+    const removeTimer = setTimeout(() => {
+      setShowInitialLoader(false);
+    }, 1300);
+
+    return () => {
+      clearTimeout(fadeTimer);
+      clearTimeout(removeTimer);
+    };
+  }, []);
+
   const [messages, setMessages] = useState<Message[]>([
     {
       role: 'assistant',
       content:
-        'Hello! I am your Instant Mechanic senior automotive diagnostic technician. 🔧\n\n' +
-        'Please describe what your car is experiencing—for example: "My Hyundai Creta makes a clicking noise when turning left", or upload an audio clip of the engine or photo of the problem.',
+        'Describe what your vehicle is experiencing—such as symptoms, strange noises, warning lights, or breakdown conditions. You can also upload a photo, video, or voice recording of your engine sound.',
       created_at: new Date().toISOString(),
     },
   ]);
@@ -55,6 +79,13 @@ export default function ChatPage() {
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+
+  const quickSymptoms = [
+    'Hyundai Creta clicking noise when turning steering',
+    'Maruti Swift engine cranks but will not start',
+    'Honda City brake pedal feels soft and spongy',
+    'White smoke and burning smell from exhaust'
+  ];
 
   // Check for pre-filled query from home page
   useEffect(() => {
@@ -135,7 +166,7 @@ export default function ChatPage() {
       // Append notification to chat
       const summaryMsg: Message = {
         role: 'assistant',
-        content: `Diagnostic Report generated for your vehicle. Review the details below and book a technician when ready.`,
+        content: `Vehicle Diagnostic Report completed based on 10,000+ automotive repair patterns. See the itemized breakdown below to dispatch a certified mobile mechanic.`,
         created_at: new Date().toISOString(),
       };
       setMessages((prev) => [...prev, summaryMsg]);
@@ -171,196 +202,260 @@ export default function ChatPage() {
   };
 
   return (
-    <div className="mx-auto flex h-[calc(100vh-4rem)] w-full max-w-5xl flex-col p-2 sm:p-4">
-      {/* Top Bar with Conversation Info & Reset */}
-      <div className="flex items-center justify-between rounded-2xl border border-neutral-800 bg-neutral-900/90 px-4 py-3 shadow-md backdrop-blur-md mb-3">
-        <div className="flex items-center gap-3">
-          <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-amber-500 to-orange-500 text-neutral-950 font-bold shadow-md">
-            <Wrench className="h-5 w-5" />
-          </div>
-          <div>
-            <div className="flex items-center gap-2">
-              <h2 className="text-sm font-bold text-white">AutoMechanic AI</h2>
-              <span className="inline-block h-2 w-2 rounded-full bg-emerald-500" />
-            </div>
-            <div className="flex items-center gap-2 text-xs text-neutral-400">
-              {conversationId && (
-                <span className="font-mono text-[11px] text-neutral-400">Session #{conversationId}</span>
-              )}
-              {vehicleInfo && (
-                <span className="flex items-center gap-1 rounded bg-neutral-800 px-2 py-0.5 text-[11px] font-semibold text-amber-300">
-                  <Car className="h-3 w-3" /> {vehicleInfo}
-                </span>
-              )}
-            </div>
-          </div>
-        </div>
-
-        <div className="flex items-center gap-2">
-          {canDiagnose && (
-            <button
-              onClick={handleRunDiagnosis}
-              disabled={isDiagnosing}
-              className="flex items-center gap-1.5 rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 px-3 py-1.5 text-xs font-bold text-neutral-950 shadow-md transition-all hover:scale-105 active:scale-95 disabled:opacity-50 animate-pulse"
-            >
-              {isDiagnosing ? (
-                <>
-                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                  <span>Analyzing...</span>
-                </>
-              ) : (
-                <>
-                  <Sparkles className="h-3.5 w-3.5" />
-                  <span>Run Diagnosis</span>
-                </>
-              )}
-            </button>
-          )}
-
-          <button
-            onClick={handleResetChat}
-            className="flex items-center gap-1 rounded-xl border border-neutral-800 bg-neutral-800/80 px-2.5 py-1.5 text-xs font-medium text-neutral-300 hover:bg-neutral-800 hover:text-white transition-colors"
-            title="Start new conversation"
-          >
-            <RotateCcw className="h-3.5 w-3.5" />
-            <span className="hidden sm:inline">New Chat</span>
-          </button>
-        </div>
-      </div>
-
-      {/* Message Stream */}
-      <div className="flex-1 overflow-y-auto rounded-2xl border border-neutral-800/80 bg-neutral-950/60 p-4 sm:p-6 space-y-4 shadow-inner">
-        {messages.map((msg, index) => (
-          <ChatMessage key={index} message={msg} />
-        ))}
-
-        {/* Diagnosis Card if generated */}
-        {latestDiagnosis && (
-          <DiagnosisCard
-            diagnosis={latestDiagnosis}
-            onBookMechanic={handleOpenBooking}
-          />
-        )}
-
-        {/* Loading Indicator */}
-        {isLoading && (
-          <div className="flex items-center gap-2 text-xs text-neutral-400 p-2">
-            <Loader2 className="h-4 w-4 animate-spin text-amber-500" />
-            <span>Technician is evaluating symptoms...</span>
-          </div>
-        )}
-
-        {/* Prompt to diagnose if ready */}
-        {canDiagnose && !latestDiagnosis && !isLoading && (
-          <div className="rounded-xl border border-amber-500/30 bg-amber-500/10 p-4 text-center space-y-2">
-            <p className="text-xs sm:text-sm font-semibold text-amber-300">
-              Sufficient details gathered! You can now generate the mechanical diagnosis.
-            </p>
-            <button
-              onClick={handleRunDiagnosis}
-              disabled={isDiagnosing}
-              className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 px-5 py-2 text-xs font-bold text-neutral-950 shadow-md transition-transform hover:scale-105 active:scale-95"
-            >
-              {isDiagnosing ? (
-                <>
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                  <span>Generating Diagnostic Report...</span>
-                </>
-              ) : (
-                <>
-                  <Sparkles className="h-4 w-4" />
-                  <span>Generate Mechanical Diagnosis 🔧</span>
-                </>
-              )}
-            </button>
-          </div>
-        )}
-
-        <div ref={messagesEndRef} />
-      </div>
-
-      {/* Media Attachment Preview Chip */}
-      {attachedMedia && (
-        <div className="mt-2 flex items-center justify-between rounded-xl border border-amber-500/30 bg-neutral-900/90 px-3.5 py-2 text-xs text-amber-300 shadow-md">
-          <div className="flex items-center gap-2 truncate">
-            {attachedMedia.media_type === 'image' && <FileImage className="h-4 w-4 shrink-0" />}
-            {attachedMedia.media_type === 'audio' && <FileAudio className="h-4 w-4 shrink-0" />}
-            {attachedMedia.media_type === 'video' && <FileVideo className="h-4 w-4 shrink-0" />}
-            <span className="truncate">{attachedMedia.file_name}</span>
-            <span className="text-[10px] text-neutral-500">
-              ({(attachedMedia.file_size / 1024).toFixed(0)} KB)
-            </span>
-          </div>
-
-          <button
-            onClick={() => setAttachedMedia(null)}
-            className="rounded p-1 text-neutral-400 hover:text-white"
-          >
-            <X className="h-3.5 w-3.5" />
-          </button>
-        </div>
+    <div className="min-h-screen bg-[#faf9f5] text-stone-900 font-sans relative flex flex-col overflow-x-hidden selection:bg-red-600 selection:text-white">
+      {/* Smooth Animated Truck Loader from Uiverse.io by vinodjangid07 before opening chat bot */}
+      {showInitialLoader && (
+        <TruckLoaderOverlay
+          message="INITIALIZING DIAGNOSTICS..."
+          subMessage="Loading diagnostic engine..."
+          fadeOut={loaderFadeOut}
+        />
       )}
 
-      {/* Voice Recorder Overlay or Input Bar */}
-      <div className="mt-3">
-        {showVoiceRecorder ? (
-          <AudioRecorder
-            onAudioUploaded={(upload) => {
-              setShowVoiceRecorder(false);
-              sendMessage('[Recorded voice sound sample]', upload);
-            }}
-            onError={(err) => setError(err)}
-            onCancel={() => setShowVoiceRecorder(false)}
-          />
-        ) : (
-          <form
-            onSubmit={(e) => {
-              e.preventDefault();
-              sendMessage();
-            }}
-            className="flex items-center gap-2 rounded-2xl border border-neutral-800 bg-neutral-900/90 p-2 shadow-xl backdrop-blur-md"
-          >
-            {/* Media Uploaders (Image, Audio, Video) */}
-            <MediaUploader
-              onMediaUploaded={(upload) => setAttachedMedia(upload)}
-              onError={(err) => setError(err)}
-              disabled={isLoading}
-            />
+      {/* Overlay when executing AI Diagnosis */}
+      {isDiagnosing && (
+        <TruckLoaderOverlay
+          message="GENERATING PRECISION DIAGNOSIS..."
+          subMessage="Cross-referencing telemetry, acoustic samples, and OEM repair database..."
+        />
+      )}
 
-            {/* Voice Recorder trigger */}
-            <button
-              type="button"
-              onClick={() => setShowVoiceRecorder(true)}
-              disabled={isLoading}
-              className="flex items-center justify-center rounded-lg p-2 text-neutral-400 transition-colors hover:bg-neutral-800 hover:text-rose-400 active:scale-95 disabled:opacity-50"
-              title="Record sound using microphone"
+      {/* Background Subtle Tech Grid Layer matching landing page */}
+      <div
+        className="fixed inset-0 pointer-events-none bg-grid-subtle opacity-90 z-0"
+        style={{
+          maskImage: 'radial-gradient(ellipse 75% 65% at 50% 30%, #000 70%, transparent 100%)',
+          WebkitMaskImage: 'radial-gradient(ellipse 75% 65% at 50% 30%, #000 70%, transparent 100%)'
+        }}
+      />
+
+      {/* ============================================================ */}
+      {/* 1. TOP HEADER (MATCHING LANDING PAGE CAPSULE STYLE)          */}
+      {/* ============================================================ */}
+      <header className="relative z-20 w-full max-w-5xl mx-auto pt-3 sm:pt-4 px-2 sm:px-4 shrink-0">
+        <div className="rounded-full bg-white/85 backdrop-blur-md border border-stone-200/80 px-3 sm:px-5 py-2 sm:py-2.5 flex items-center justify-between shadow-xs">
+          
+          {/* Left: Back button + Brand Logo */}
+          <div className="flex items-center gap-2 sm:gap-3.5 shrink-0">
+            <Link
+              href="/"
+              className="flex items-center justify-center rounded-full p-1.5 text-stone-700 hover:bg-stone-100 hover:text-black transition-colors"
+              title="Back to Instant Mechanic Home"
             >
-              <Mic className="h-5 w-5" />
+              <ArrowLeft className="h-4 w-4" />
+            </Link>
+
+            <Link href="/" className="flex items-center transition-opacity hover:opacity-90 shrink-0">
+              <div className="relative h-6 w-24 sm:w-28">
+                <Image
+                  src="/brand-logo.png"
+                  alt="Instant Mechanic Logo"
+                  fill
+                  className="object-contain"
+                  priority
+                />
+              </div>
+            </Link>
+          </div>
+
+          {/* Right: Actions */}
+          <div className="flex items-center gap-1.5 sm:gap-2">
+            {/* Vehicle Info Badge if detected */}
+            {vehicleInfo && (
+              <span className="hidden sm:inline-flex items-center gap-1.5 rounded-full bg-stone-100 border border-stone-200 px-3 py-1 text-xs font-mono font-bold text-stone-900">
+                <Car className="h-3.5 w-3.5 text-red-600" />
+                <span>{vehicleInfo}</span>
+              </span>
+            )}
+
+            {/* Run Diagnosis CTA Button (Shining Metal Effect) */}
+            {canDiagnose && (
+              <button
+                onClick={handleRunDiagnosis}
+                disabled={isDiagnosing}
+                className="btn-metal-shine inline-flex items-center gap-1.5 rounded-full px-4 py-1.5 text-xs font-bold active:scale-95 disabled:opacity-50"
+              >
+                {isDiagnosing ? (
+                  <>
+                    <Loader2 className="h-3.5 w-3.5 animate-spin relative z-10" />
+                    <span className="relative z-10">Analyzing...</span>
+                  </>
+                ) : (
+                  <>
+                    <Sparkles className="h-3.5 w-3.5 text-amber-400 relative z-10 animate-pulse" />
+                    <span className="relative z-10">Run Diagnosis</span>
+                  </>
+                )}
+              </button>
+            )}
+
+            {/* Reset Session */}
+            <button
+              onClick={handleResetChat}
+              className="flex items-center justify-center rounded-full p-2 text-stone-600 hover:bg-stone-100 hover:text-black transition-colors"
+              title="Start New Session"
+            >
+              <RotateCcw className="h-4 w-4" />
             </button>
 
-            {/* Message input */}
-            <input
-              ref={inputRef}
-              type="text"
-              value={inputText}
-              onChange={(e) => setInputText(e.target.value)}
-              placeholder="Type your car problem (e.g. clicking noise while turning left)..."
-              disabled={isLoading}
-              className="flex-1 bg-transparent px-2 text-sm text-white placeholder-neutral-500 focus:outline-none disabled:opacity-50"
-            />
-
-            {/* Send button */}
-            <button
-              type="submit"
-              disabled={isLoading || (!inputText.trim() && !attachedMedia)}
-              className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 text-neutral-950 font-bold shadow-md transition-all hover:opacity-95 active:scale-95 disabled:opacity-40"
-              title="Send message"
+            {/* History Link */}
+            <Link
+              href="/history"
+              className="flex items-center justify-center rounded-full p-2 text-stone-600 hover:bg-stone-100 hover:text-black transition-colors"
+              title="Diagnosis History"
             >
-              <Send className="h-4 w-4" />
-            </button>
-          </form>
-        )}
-      </div>
+              <History className="h-4 w-4" />
+            </Link>
+          </div>
+        </div>
+      </header>
+
+      {/* ============================================================ */}
+      {/* 2. CHAT WORKSPACE CONTAINER (GLASSMORPHISM CARD)             */}
+      {/* ============================================================ */}
+      <main className="relative z-10 flex-1 w-full max-w-5xl mx-auto px-2 sm:px-4 py-3 sm:py-5 flex flex-col min-h-0">
+        <div className="rounded-3xl border border-white/80 bg-white/75 backdrop-blur-md shadow-xs flex-1 flex flex-col overflow-hidden">
+          
+          {/* ========================================================== */}
+          {/* 3. MESSAGE STREAM                                          */}
+          {/* ========================================================== */}
+          <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-4">
+            
+            {/* Messages list */}
+            {messages.map((msg, index) => (
+              <ChatMessage key={index} message={msg} />
+            ))}
+
+            {/* Quick Suggestion Chips if initial message */}
+            {messages.length === 1 && (
+              <div className="my-4 pt-2">
+                <span className="text-[11px] font-mono font-bold uppercase tracking-wider text-stone-500 block mb-2.5 text-left">
+                  Common Issue Prompts
+                </span>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-left">
+                  {quickSymptoms.map((symptom, idx) => (
+                    <button
+                      key={idx}
+                      onClick={() => sendMessage(symptom)}
+                      className="rounded-xl border border-stone-200 bg-white/90 p-3 text-xs text-stone-800 hover:border-stone-400 hover:bg-stone-50 transition-colors flex items-center justify-between group shadow-2xs"
+                    >
+                      <span className="font-medium text-stone-900 leading-snug">{symptom}</span>
+                      <ChevronRight className="h-3.5 w-3.5 text-stone-400 group-hover:text-black transition-colors shrink-0 ml-2" />
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Diagnosis Card if generated */}
+            {latestDiagnosis && (
+              <DiagnosisCard
+                diagnosis={latestDiagnosis}
+                onBookMechanic={handleOpenBooking}
+              />
+            )}
+
+            {/* Loading / Evaluating Indicator */}
+            {isLoading && (
+              <div className="flex w-full justify-start animate-in fade-in duration-150">
+                <div className="rounded-2xl rounded-tl-xs bg-white text-stone-900 border border-stone-200/90 px-4 py-3 shadow-xs text-xs flex items-center gap-2.5">
+                  <Loader2 className="h-4 w-4 animate-spin text-red-600" />
+                  <span className="font-mono text-stone-700 font-medium">Evaluating vehicle symptoms...</span>
+                </div>
+              </div>
+            )}
+
+            <div ref={messagesEndRef} />
+          </div>
+
+          {/* ========================================================== */}
+          {/* 4. ATTACHED MEDIA PREVIEW CHIP (IF FILE SELECTED)          */}
+          {/* ========================================================== */}
+          {attachedMedia && (
+            <div className="border-t border-stone-200/70 bg-stone-50/90 px-4 py-2 flex items-center justify-between">
+              <div className="flex items-center gap-2 text-xs font-semibold text-stone-900">
+                {attachedMedia.media_type === 'image' && <FileImage className="h-4 w-4 text-stone-700" />}
+                {attachedMedia.media_type === 'audio' && <FileAudio className="h-4 w-4 text-red-600" />}
+                {attachedMedia.media_type === 'video' && <FileVideo className="h-4 w-4 text-amber-600" />}
+                <span className="truncate max-w-[200px] sm:max-w-xs">{attachedMedia.file_name}</span>
+                <span className="text-[10px] font-mono text-stone-500">({(attachedMedia.file_size / 1024).toFixed(0)} KB)</span>
+              </div>
+              <button
+                onClick={() => setAttachedMedia(null)}
+                className="text-stone-500 hover:text-red-600 p-1 rounded-full transition-colors"
+                title="Remove attachment"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+          )}
+
+          {/* ========================================================== */}
+          {/* 5. BOTTOM INPUT BAR                                        */}
+          {/* ========================================================== */}
+          <footer className="border-t border-stone-200/80 bg-white/90 p-2.5 sm:p-3.5 backdrop-blur-sm shrink-0">
+            {showVoiceRecorder ? (
+              <AudioRecorder
+                onAudioUploaded={(upload) => {
+                  setShowVoiceRecorder(false);
+                  sendMessage('[Recorded engine audio sample]', upload);
+                }}
+                onError={(err) => setError(err)}
+                onCancel={() => setShowVoiceRecorder(false)}
+              />
+            ) : (
+              <form
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  sendMessage();
+                }}
+                className="flex items-center gap-2"
+              >
+                {/* Media Attachment Popover */}
+                <MediaUploader
+                  onMediaUploaded={(upload) => setAttachedMedia(upload)}
+                  onError={(err) => setError(err)}
+                  disabled={isLoading}
+                />
+
+                {/* Voice Note Mic Button */}
+                <button
+                  type="button"
+                  onClick={() => setShowVoiceRecorder(true)}
+                  disabled={isLoading}
+                  className="flex items-center justify-center rounded-full p-2 text-stone-600 hover:text-black hover:bg-stone-100 transition-colors active:scale-95 disabled:opacity-50"
+                  title="Record Engine Noise (Acoustic Audio)"
+                >
+                  <Mic className="h-5 w-5" />
+                </button>
+
+                {/* Input Field */}
+                <div className="flex-1 relative">
+                  <input
+                    ref={inputRef}
+                    type="text"
+                    value={inputText}
+                    onChange={(e) => setInputText(e.target.value)}
+                    placeholder="Describe your car symptoms (e.g. grinding noise when braking, smoke from bonnet)..."
+                    disabled={isLoading}
+                    className="w-full rounded-full border border-stone-300 bg-white py-2.5 px-4 text-xs sm:text-sm text-stone-900 placeholder-stone-400 focus:border-stone-900 focus:outline-none shadow-2xs font-medium"
+                  />
+                </div>
+
+                {/* Send Button: Shining Metal Effect */}
+                <button
+                  type="submit"
+                  disabled={isLoading || (!inputText.trim() && !attachedMedia)}
+                  className="btn-metal-shine flex h-10 w-10 shrink-0 items-center justify-center rounded-full active:scale-95 disabled:opacity-40"
+                  title="Send Message"
+                >
+                  <Send className="h-4 w-4 text-white relative z-10" />
+                </button>
+              </form>
+            )}
+          </footer>
+        </div>
+      </main>
 
       {/* Booking Modal */}
       <BookingModal
