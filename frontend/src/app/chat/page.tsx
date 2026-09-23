@@ -163,13 +163,14 @@ export default function ChatPage() {
       setLatestDiagnosis(diag);
       setCanDiagnose(false);
 
-      // Append notification to chat
-      const summaryMsg: Message = {
+      // Append diagnosis directly into the message timeline so any subsequent messages appear after it
+      const diagMsg: Message = {
         role: 'assistant',
-        content: `Vehicle Diagnostic Report completed based on 10,000+ automotive repair patterns. See the itemized breakdown below to dispatch a certified mobile mechanic.`,
+        content: `Diagnostic Report: ${diag.service}`,
+        diagnosis: diag,
         created_at: new Date().toISOString(),
       };
-      setMessages((prev) => [...prev, summaryMsg]);
+      setMessages((prev) => [...prev, diagMsg]);
     } catch (err) {
       setError(parseApiError(err));
     } finally {
@@ -321,9 +322,18 @@ export default function ChatPage() {
           {/* ========================================================== */}
           <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-4">
             
-            {/* Messages list */}
+            {/* Messages list with integrated Diagnosis cards in chronological order */}
             {messages.map((msg, index) => (
-              <ChatMessage key={index} message={msg} />
+              <div key={index} className="space-y-4">
+                {msg.diagnosis ? (
+                  <DiagnosisCard
+                    diagnosis={msg.diagnosis}
+                    onBookMechanic={handleOpenBooking}
+                  />
+                ) : (
+                  <ChatMessage message={msg} />
+                )}
+              </div>
             ))}
 
             {/* Quick Suggestion Chips if initial message */}
@@ -345,14 +355,6 @@ export default function ChatPage() {
                   ))}
                 </div>
               </div>
-            )}
-
-            {/* Diagnosis Card if generated */}
-            {latestDiagnosis && (
-              <DiagnosisCard
-                diagnosis={latestDiagnosis}
-                onBookMechanic={handleOpenBooking}
-              />
             )}
 
             {/* Loading / Evaluating Indicator */}

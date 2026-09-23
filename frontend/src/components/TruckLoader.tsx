@@ -1,6 +1,6 @@
 'use client';
 
-import React from 'react';
+import React, { useEffect } from 'react';
 import './TruckLoader.css';
 
 export default function TruckLoader({ className = '' }: { className?: string }) {
@@ -123,9 +123,22 @@ export function TruckLoaderOverlay({
   subMessage?: string;
   fadeOut?: boolean;
 }) {
+  useEffect(() => {
+    if (!fadeOut) {
+      const prevBodyOverflow = document.body.style.overflow;
+      const prevHtmlOverflow = document.documentElement.style.overflow;
+      document.body.style.overflow = 'hidden';
+      document.documentElement.style.overflow = 'hidden';
+      return () => {
+        document.body.style.overflow = prevBodyOverflow;
+        document.documentElement.style.overflow = prevHtmlOverflow;
+      };
+    }
+  }, [fadeOut]);
+
   return (
     <div
-      className={`fixed inset-0 z-50 flex flex-col items-center justify-center bg-[#faf9f5] transition-opacity duration-500 ease-out ${
+      className={`fixed inset-0 z-50 flex flex-col items-center justify-center bg-[#faf9f5] overflow-hidden select-none transition-opacity duration-500 ease-out ${
         fadeOut ? 'opacity-0 pointer-events-none' : 'opacity-100'
       }`}
     >

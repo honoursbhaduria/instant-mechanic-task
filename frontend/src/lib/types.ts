@@ -5,6 +5,7 @@ export interface Message {
   content: string;
   media_type?: 'text' | 'image' | 'audio' | 'video';
   media_url?: string;
+  diagnosis?: Diagnosis;
   created_at?: string;
 }
 
