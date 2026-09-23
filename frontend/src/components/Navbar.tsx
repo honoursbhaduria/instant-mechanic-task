@@ -36,7 +36,8 @@ export default function Navbar() {
     {
       label: 'AI Diagnosis',
       children: [
-        { value: '/chat', label: 'IM Buddy (Free Tool)', icon: Rocket01Icon },
+        { value: '/chat', label: 'IM Buddy (Live Chat)', icon: Rocket01Icon },
+        { value: '/history', label: 'Past Consultation Records', icon: ShieldCheckIcon },
         { value: '#ai-section', label: '10,000+ Symptom Map', icon: ShieldCheckIcon },
       ]
     },
@@ -162,6 +163,9 @@ export default function Navbar() {
               </a>
               <Link href="/chat" className="hover:text-red-600 transition-colors">
                 AI Diagnosis
+              </Link>
+              <Link href="/history" className="hover:text-red-600 transition-colors">
+                History
               </Link>
               <a href="#membership" className="hover:text-red-600 transition-colors">
                 Membership

@@ -1,8 +1,9 @@
 'use client';
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, Suspense } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
+import { useSearchParams } from 'next/navigation';
 import {
   Send,
   Mic,
@@ -28,7 +29,10 @@ import AudioRecorder from '@/components/AudioRecorder';
 import ErrorAlert from '@/components/ErrorAlert';
 import { TruckLoaderOverlay } from '@/components/TruckLoader';
 
-export default function ChatPage() {
+function ChatWorkspace() {
+  const searchParams = useSearchParams();
+  const sessionQueryId = searchParams.get('id') || searchParams.get('session');
+
   // Smooth Truck Loader before opening the chatbot
   const [showInitialLoader, setShowInitialLoader] = useState(true);
   const [loaderFadeOut, setLoaderFadeOut] = useState(false);
@@ -87,14 +91,52 @@ export default function ChatPage() {
     'White smoke and burning smell from exhaust'
   ];
 
-  // Check for pre-filled query from home page
+  // Load existing session from URL id if provided, else check for pre-filled query
   useEffect(() => {
-    const prefill = sessionStorage.getItem('initial_mechanic_query');
-    if (prefill) {
-      sessionStorage.removeItem('initial_mechanic_query');
-      sendMessage(prefill);
+    if (sessionQueryId) {
+      loadSessionById(sessionQueryId);
+    } else {
+      const prefill = sessionStorage.getItem('initial_mechanic_query');
+      if (prefill) {
+        sessionStorage.removeItem('initial_mechanic_query');
+        sendMessage(prefill);
+      }
     }
-  }, []);
+  }, [sessionQueryId]);
+
+  const loadSessionById = async (id: string | number) => {
+    setIsLoading(true);
+    setError(null);
+    try {
+      const conv = await api.getConversation(id);
+      setConversationId(conv.id);
+      if (conv.vehicle_info) {
+        setVehicleInfo(conv.vehicle_info);
+      }
+
+      // Merge messages and diagnoses in chronological order
+      const timeline: Message[] = [...(conv.messages || [])];
+      if (conv.diagnoses && conv.diagnoses.length > 0) {
+        for (const d of conv.diagnoses) {
+          timeline.push({
+            role: 'assistant',
+            content: `Diagnostic Report: ${d.service}`,
+            diagnosis: d,
+            created_at: d.created_at,
+          });
+        }
+        setLatestDiagnosis(conv.diagnoses[conv.diagnoses.length - 1]);
+      }
+      timeline.sort((a, b) => new Date(a.created_at || 0).getTime() - new Date(b.created_at || 0).getTime());
+      if (timeline.length > 0) {
+        setMessages(timeline);
+      }
+    } catch (err) {
+      setError(parseApiError(err));
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   // Auto scroll to bottom
   useEffect(() => {
@@ -476,5 +518,20 @@ export default function ChatPage() {
         }}
       />
     </div>
+  );
+}
+
+export default function ChatPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="min-h-screen bg-[#faf9f5] flex flex-col items-center justify-center">
+          <Loader2 className="h-7 w-7 animate-spin text-red-600 mb-2" />
+          <span className="text-xs font-mono text-stone-500">Loading diagnostic workspace...</span>
+        </div>
+      }
+    >
+      <ChatWorkspace />
+    </Suspense>
   );
 }

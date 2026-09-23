@@ -12,7 +12,8 @@ import {
   ArrowLeft,
   Loader2,
   MessageSquare,
-  Sparkles
+  Sparkles,
+  ChevronDown
 } from 'lucide-react';
 import { api, parseApiError, ApiError } from '@/lib/api';
 import { Conversation, Diagnosis } from '@/lib/types';
@@ -23,6 +24,14 @@ export default function HistoryPage() {
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<ApiError | null>(null);
+  const [expandedSessions, setExpandedSessions] = useState<Record<number, boolean>>({});
+
+  const toggleExpand = (id: number) => {
+    setExpandedSessions((prev) => ({
+      ...prev,
+      [id]: !prev[id],
+    }));
+  };
 
   // Selected diagnosis for booking
   const [selectedDiagnosis, setSelectedDiagnosis] = useState<Diagnosis | null>(null);
@@ -176,13 +185,24 @@ export default function HistoryPage() {
                       )}
                     </div>
 
-                    <div className="flex items-center gap-3 text-xs font-mono text-stone-500">
-                      <span className="flex items-center gap-1">
-                        <MessageSquare className="h-3.5 w-3.5 text-stone-400" />
-                        <span>{messageCount} {messageCount === 1 ? 'msg' : 'msgs'}</span>
-                      </span>
-                      <span>•</span>
-                      <span>{new Date(conv.created_at).toLocaleDateString()}</span>
+                    <div className="flex items-center gap-2 sm:gap-3">
+                      <div className="flex items-center gap-2 text-xs font-mono text-stone-500">
+                        <span className="flex items-center gap-1">
+                          <MessageSquare className="h-3.5 w-3.5 text-stone-400" />
+                          <span>{messageCount} {messageCount === 1 ? 'msg' : 'msgs'}</span>
+                        </span>
+                        <span>•</span>
+                        <span>{new Date(conv.created_at).toLocaleDateString()}</span>
+                      </div>
+
+                      <Link
+                        href={`/chat?id=${conv.id}`}
+                        className="inline-flex items-center gap-1 rounded-full bg-white hover:bg-stone-100 border border-stone-200 px-3 py-1 text-xs font-mono font-bold text-stone-900 transition-colors shadow-2xs"
+                        title="Open this session in the main chat workspace"
+                      >
+                        <span>Open in Chat</span>
+                        <ArrowRight className="h-3 w-3 text-red-600" />
+                      </Link>
                     </div>
                   </div>
 
@@ -243,15 +263,96 @@ export default function HistoryPage() {
                       </p>
                     )}
 
-                    {/* Recent Message preview */}
+                    {/* Expandable Full Conversation Transcript */}
                     {conv.messages && conv.messages.length > 0 && (
-                      <div className="border-t border-stone-100 pt-3">
-                        <span className="text-[11px] font-mono font-semibold text-stone-400 block mb-0.5">
-                          Last Message:
-                        </span>
-                        <p className="text-xs text-stone-700 truncate">
-                          &quot;{conv.messages[conv.messages.length - 1].content}&quot;
-                        </p>
+                      <div className="border-t border-stone-200/70 pt-3">
+                        <div className="flex items-center justify-between">
+                          <button
+                            onClick={() => toggleExpand(conv.id)}
+                            className="inline-flex items-center gap-1.5 text-xs font-mono font-bold text-stone-800 hover:text-red-600 transition-colors"
+                          >
+                            <MessageSquare className="h-3.5 w-3.5 text-stone-500" />
+                            <span>
+                              {expandedSessions[conv.id]
+                                ? 'Hide Full Conversation'
+                                : `View Full Conversation (${conv.messages.length} messages)`}
+                            </span>
+                            <ChevronDown
+                              className={`h-3.5 w-3.5 transition-transform duration-200 ${
+                                expandedSessions[conv.id] ? 'rotate-180' : ''
+                              }`}
+                            />
+                          </button>
+
+                          <Link
+                            href={`/chat?id=${conv.id}`}
+                            className="text-xs font-mono font-bold text-red-600 hover:underline inline-flex items-center gap-1"
+                          >
+                            <span>Resume in Main Chat</span>
+                            <ArrowRight className="h-3 w-3" />
+                          </Link>
+                        </div>
+
+                        {expandedSessions[conv.id] && (
+                          <div className="mt-3 space-y-3 rounded-2xl bg-stone-50/90 border border-stone-200/80 p-3 sm:p-4 max-h-[420px] overflow-y-auto animate-in fade-in duration-150">
+                            {conv.messages.map((m, idx) => (
+                              <div
+                                key={idx}
+                                className={`flex flex-col ${
+                                  m.role === 'user' ? 'items-end' : 'items-start'
+                                }`}
+                              >
+                                <div className="flex items-center gap-1.5 text-[10px] font-mono text-stone-400 mb-1 px-1">
+                                  <span className="font-semibold text-stone-600">
+                                    {m.role === 'user' ? 'Customer' : 'Senior Mechanic'}
+                                  </span>
+                                  {m.created_at && (
+                                    <span>
+                                      • {new Date(m.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                    </span>
+                                  )}
+                                </div>
+                                <div
+                                  className={`rounded-2xl px-4 py-2.5 text-xs max-w-xl leading-relaxed ${
+                                    m.role === 'user'
+                                      ? 'bg-stone-900 text-white rounded-tr-xs shadow-xs'
+                                      : 'bg-white text-stone-900 border border-stone-200 rounded-tl-xs shadow-2xs'
+                                  }`}
+                                >
+                                  {m.media_url && (
+                                    <div className="mb-2">
+                                      {m.media_type === 'image' && (
+                                        <img
+                                          src={m.media_url}
+                                          alt="Diagnostic evidence"
+                                          className="max-h-48 rounded-lg object-contain"
+                                        />
+                                      )}
+                                      {m.media_type === 'audio' && (
+                                        <audio controls src={m.media_url} className="w-full h-8" />
+                                      )}
+                                      {m.media_type === 'video' && (
+                                        <video controls src={m.media_url} className="max-h-48 rounded-lg" />
+                                      )}
+                                    </div>
+                                  )}
+                                  <p className="whitespace-pre-wrap">{m.content}</p>
+                                </div>
+                              </div>
+                            ))}
+
+                            <div className="pt-2 text-center">
+                              <Link
+                                href={`/chat?id=${conv.id}`}
+                                className="btn-metal-shine inline-flex items-center gap-2 rounded-full px-5 py-2 text-xs font-bold active:scale-95"
+                              >
+                                <Sparkles className="h-3.5 w-3.5 text-amber-400 relative z-10" />
+                                <span className="relative z-10">Open & Continue in Main Chat</span>
+                                <ArrowRight className="h-3.5 w-3.5 relative z-10" />
+                              </Link>
+                            </div>
+                          </div>
+                        )}
                       </div>
                     )}
                   </div>
