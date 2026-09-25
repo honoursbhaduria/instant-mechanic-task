@@ -14,7 +14,8 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 load_dotenv(BASE_DIR / '.env')
 
 SECRET_KEY = os.environ.get('SECRET_KEY', 'django-insecure-instant-mechanic-secret-key-2026')
-DEBUG = os.environ.get('DEBUG', 'True').lower() in ('true', '1', 'yes')
+IS_RENDER = os.environ.get('RENDER') is not None
+DEBUG = os.environ.get('DEBUG', 'False' if IS_RENDER else 'True').lower() in ('true', '1', 'yes')
 
 ALLOWED_HOSTS = ['*']
 
