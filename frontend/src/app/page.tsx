@@ -87,7 +87,7 @@ export default function HomePage() {
   ];
 
   return (
-    <div className="min-h-screen bg-[#faf9f5] text-stone-900 font-sans relative overflow-x-hidden selection:bg-red-600 selection:text-white">
+    <div className="min-h-screen bg-[#faf9f5] text-stone-900 font-sans relative overflow-x-clip selection:bg-red-600 selection:text-white">
       {/* Background Subtle Tech Grid Layer matching reference */}
       <div
         className="fixed inset-0 pointer-events-none bg-grid-subtle opacity-90 z-0"
@@ -212,8 +212,8 @@ export default function HomePage() {
               text="INSTANT MECHANIC"
               particleSize={2}
               density={4}
-              color="#f97316"
-              highlightColor="#ea580c"
+              color="#09090b"
+              highlightColor="#27272a"
               scatter={160}
               gatherDuration={1500}
               stagger={380}
@@ -223,7 +223,7 @@ export default function HomePage() {
               trigger="hover"
               fontSize="clamp(2.5rem, 8vw, 5.5rem)"
               fontWeight={900}
-              glow={true}
+              glow={false}
             />
           </div>
         </div>
@@ -245,72 +245,73 @@ export default function HomePage() {
           </p>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        {/* Desktop: 3-column Grid | Mobile: Stacking Cards Effect (No Glow) */}
+        <div className="relative flex flex-col space-y-6 md:grid md:grid-cols-3 md:gap-6 md:space-y-0 pb-16 md:pb-0">
           {/* Pillar 1 */}
-          <div className="rounded-2xl border border-stone-300 bg-white p-6 flex flex-col justify-between space-y-4 hover:border-stone-400 transition-colors">
+          <div className="sticky top-20 sm:top-24 z-10 md:static md:top-auto md:z-auto rounded-3xl border border-stone-300 bg-white p-6 sm:p-7 flex flex-col justify-between space-y-4 hover:border-stone-400 transition-all">
             <div>
               <div className="flex items-center justify-between text-xs font-mono text-stone-500 mb-3">
-                <span className="font-bold text-black">01 — The Core</span>
+                <span className="font-bold text-black px-2 py-0.5 rounded-md bg-stone-100 border border-stone-200">01 — The Core</span>
                 <span className="flex items-center gap-1 font-semibold text-black">
-                  <Zap className="h-3.5 w-3.5 text-black" />
+                  <Zap className="h-3.5 w-3.5 text-red-600" />
                   Fast Response
                 </span>
               </div>
-              <h3 className="text-lg font-bold text-black">
+              <h3 className="text-lg sm:text-xl font-bold text-black iosevka-charon-bold">
                 20-Min Mechanic, Anywhere
               </h3>
-              <p className="text-xs text-stone-900 mt-2 leading-relaxed font-normal">
+              <p className="text-xs sm:text-sm text-stone-900 mt-2 leading-relaxed font-normal">
                 Battery jumpstart, tyre change, towing, fuel delivery — a verified mechanic reaches you within 20 minutes anywhere in Delhi NCR. Parts carried on-board for instant fix.
               </p>
             </div>
             <div className="pt-3 border-t border-stone-200 flex items-center gap-1.5 text-xs font-bold text-black">
-              <Check className="h-4 w-4 text-emerald-600" />
+              <Check className="h-4 w-4 text-emerald-600 shrink-0" />
               <span>Live Now Across NCR</span>
             </div>
           </div>
 
           {/* Pillar 2 */}
-          <div className="rounded-2xl border border-stone-300 bg-white p-6 flex flex-col justify-between space-y-4 hover:border-stone-400 transition-colors">
+          <div className="sticky top-28 sm:top-32 z-20 md:static md:top-auto md:z-auto rounded-3xl border border-stone-300 bg-white p-6 sm:p-7 flex flex-col justify-between space-y-4 hover:border-stone-400 transition-all">
             <div>
               <div className="flex items-center justify-between text-xs font-mono text-stone-500 mb-3">
-                <span className="font-bold text-black">02 — The Guarantee</span>
+                <span className="font-bold text-black px-2 py-0.5 rounded-md bg-stone-100 border border-stone-200">02 — The Guarantee</span>
                 <span className="flex items-center gap-1 font-semibold text-black">
-                  <Clock className="h-3.5 w-3.5 text-black" />
+                  <Clock className="h-3.5 w-3.5 text-red-600" />
                   365 Days
                 </span>
               </div>
-              <h3 className="text-lg font-bold text-black">
+              <h3 className="text-lg sm:text-xl font-bold text-black iosevka-charon-bold">
                 24×7 Availability
               </h3>
-              <p className="text-xs text-stone-900 mt-2 leading-relaxed font-normal">
+              <p className="text-xs sm:text-sm text-stone-900 mt-2 leading-relaxed font-normal">
                 Breakdowns don&apos;t wait for business hours. Neither do we. One call connects you to help at 2am, on a highway, on a Sunday — every single day of the year, 365 days.
               </p>
             </div>
             <div className="pt-3 border-t border-stone-200 flex items-center gap-1.5 text-xs font-bold text-black">
-              <Check className="h-4 w-4 text-emerald-600" />
+              <Check className="h-4 w-4 text-emerald-600 shrink-0" />
               <span>Always On</span>
             </div>
           </div>
 
           {/* Pillar 3 */}
-          <div className="rounded-2xl border border-stone-300 bg-white p-6 flex flex-col justify-between space-y-4 hover:border-stone-400 transition-colors">
+          <div className="sticky top-36 sm:top-40 z-30 md:static md:top-auto md:z-auto rounded-3xl border border-stone-300 bg-white p-6 sm:p-7 flex flex-col justify-between space-y-4 hover:border-stone-400 transition-all">
             <div>
               <div className="flex items-center justify-between text-xs font-mono text-stone-500 mb-3">
-                <span className="font-bold text-black">03 — The Standard</span>
+                <span className="font-bold text-black px-2 py-0.5 rounded-md bg-stone-100 border border-stone-200">03 — The Standard</span>
                 <span className="flex items-center gap-1 font-semibold text-black">
-                  <Wrench className="h-3.5 w-3.5 text-black" />
+                  <Wrench className="h-3.5 w-3.5 text-red-600" />
                   Gurugram HQ
                 </span>
               </div>
-              <h3 className="text-lg font-bold text-black">
+              <h3 className="text-lg sm:text-xl font-bold text-black iosevka-charon-bold">
                 Trusted Garage, Transparent Bills
               </h3>
-              <p className="text-xs text-stone-900 mt-2 leading-relaxed font-normal">
+              <p className="text-xs sm:text-sm text-stone-900 mt-2 leading-relaxed font-normal">
                 Modern garage in Sector 75, Gurugram. Diagnosis-led repairs — AI recommends, mechanic executes, you approve. No hidden charges, no blind trust. Ever.
               </p>
             </div>
             <div className="pt-3 border-t border-stone-200 flex items-center gap-1.5 text-xs font-bold text-black">
-              <Check className="h-4 w-4 text-emerald-600" />
+              <Check className="h-4 w-4 text-emerald-600 shrink-0" />
               <span>Book Today</span>
             </div>
           </div>

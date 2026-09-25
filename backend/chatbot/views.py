@@ -27,8 +27,10 @@ from .logic.validator import (
     is_security_threat,
     get_security_rejection_reply
 )
-from .logic.state_tracker import analyze_conversation_state, generate_followup_question
-from .logic.gemini_service import diagnose_with_gemini
+from .logic.safety_rules import check_safety_critical_condition
+from .logic.state_tracker import update_conversation_state, get_initial_state
+from .logic.question_engine import get_next_question
+from .logic.diagnostic_engine import perform_diagnosis
 from .logic.vehicle_service import COMMON_MAKES, fetch_models_from_nhtsa
 
 # Max upload limit: 25MB
@@ -51,11 +53,12 @@ class HealthCheckView(APIView):
 class ChatView(APIView):
     """
     POST /api/chat/
-    Validates query using traditional backend logic:
-    1. Rejects off-topic queries politely
-    2. Handles greetings politely
-    3. Checks missing information and asks follow-ups
-    4. Triggers diagnosis readiness when sufficient info is gathered
+    1. Zero-Trust Security Gate (SQLi / prompt injection).
+    2. Immediate Safety Hazard Gate (brake failure, fire, fuel leak).
+    3. Greeting Gate.
+    4. Domain Boundary Gate (reject off-topic).
+    5. Deterministic Fact Extraction & Conversation State Update.
+    6. Dynamic Targeted Question Generation (0 Gemini calls).
     """
     def post(self, request):
         conversation_id = request.data.get('conversation_id')
@@ -79,7 +82,10 @@ class ChatView(APIView):
                     status=status.HTTP_404_NOT_FOUND
                 )
         else:
-            conversation = Conversation.objects.create()
+            conversation = Conversation.objects.create(state=get_initial_state())
+
+        if not conversation.state or not isinstance(conversation.state, dict):
+            conversation.state = get_initial_state()
 
         # Save user message to database
         user_msg = Message.objects.create(
@@ -90,14 +96,7 @@ class ChatView(APIView):
             media_url=media_url
         )
 
-        # Detect vehicle info if present and update conversation
-        if user_message_text:
-            detected_vehicle = extract_vehicle_info(user_message_text)
-            if detected_vehicle and not conversation.vehicle_info:
-                conversation.vehicle_info = detected_vehicle
-                conversation.save(update_fields=['vehicle_info'])
-
-        # Zero-Trust Fast-Path Security Gate: Prompt Injection / SQLi / Jailbreak
+        # 1. Zero-Trust Security Gate: Prompt Injection / SQLi / Jailbreak
         if user_message_text and is_security_threat(user_message_text):
             reply_text = get_security_rejection_reply()
             Message.objects.create(
@@ -114,7 +113,33 @@ class ChatView(APIView):
                 "is_security_refusal": True
             }, status=status.HTTP_200_OK)
 
-        # Case 1: Greeting only
+        # 2. Immediate Safety Hazard Gate
+        if user_message_text:
+            safety = check_safety_critical_condition(user_message_text)
+            if safety["is_safety_critical"]:
+                reply_text = safety["warning"] + f"\n\nRecommended Immediate Service: {safety['recommended_service']}"
+                conversation.state["safety_critical"] = True
+                conversation.state["diagnostic_status"] = "ready"
+                conversation.save()
+                Message.objects.create(
+                    conversation=conversation,
+                    role='assistant',
+                    content=reply_text,
+                    media_type='text'
+                )
+                return Response({
+                    "reply": reply_text,
+                    "conversation_id": conversation.id,
+                    "needs_more_info": False,
+                    "can_diagnose": True,
+                    "is_safety_critical": True,
+                    "diagnostic_status": "ready",
+                    "vehicle_info": conversation.vehicle_info,
+                    "progress": {"completed": 4, "estimated_required": 4},
+                    "quick_replies": ["Run Diagnosis", "Book Emergency Service"]
+                }, status=status.HTTP_200_OK)
+
+        # 3. Case: Greeting only
         if user_message_text and is_greeting_only(user_message_text):
             reply_text = get_greeting_reply()
             Message.objects.create(
@@ -128,15 +153,21 @@ class ChatView(APIView):
                 "conversation_id": conversation.id,
                 "needs_more_info": True,
                 "can_diagnose": False,
-                "vehicle_info": conversation.vehicle_info
+                "diagnostic_status": "collecting",
+                "vehicle_info": conversation.vehicle_info,
+                "progress": {"completed": 0, "estimated_required": 4},
+                "quick_replies": [
+                    "Hyundai Creta clicking noise when turning",
+                    "Maruti Swift engine won't start",
+                    "Honda City brake squealing",
+                    "Engine overheating in traffic"
+                ]
             }, status=status.HTTP_200_OK)
 
-        # Case 2: Check if car/mechanical related
-        # If this is the first message or conversation has no car context yet
+        # 4. Case: Off-topic query rejection
         has_prior_car_context = any(
             is_car_related(m.content) for m in conversation.messages.filter(role='user')
         )
-
         if not has_prior_car_context and user_message_text and not is_car_related(user_message_text):
             reply_text = get_rejection_reply()
             Message.objects.create(
@@ -150,12 +181,53 @@ class ChatView(APIView):
                 "conversation_id": conversation.id,
                 "needs_more_info": False,
                 "can_diagnose": False,
+                "diagnostic_status": "collecting",
                 "is_rejected": True
             }, status=status.HTTP_200_OK)
 
-        # Case 3: Vehicle/symptom state tracking & follow-up logic
-        state = analyze_conversation_state(conversation.messages.all(), conversation.vehicle_info)
-        reply_text, needs_more_info = generate_followup_question(state, user_message_text or "")
+        # 5. Media handling
+        if media_url:
+            media_item = {"media_type": media_type or 'image', "media_url": media_url}
+            conversation.state.setdefault("media", []).append(media_item)
+
+        # 6. Fact Extraction & State Progression
+        last_question_field = conversation.state.get("next_field")
+        state = update_conversation_state(conversation.state, user_message_text or "", last_question_field)
+
+        # Persist extracted facts into ConversationFact table in Neon PostgreSQL
+        try:
+            from .models import ConversationFact
+            from .logic.state_tracker import state_to_facts_dict
+            facts_dict = state_to_facts_dict(state)
+            for f_key, f_val in facts_dict.items():
+                if f_val is not None and not isinstance(f_val, dict) and f_val != "":
+                    ConversationFact.objects.update_or_create(
+                        conversation=conversation,
+                        key=f_key,
+                        defaults={
+                            "value": f_val,
+                            "confidence": 1.0,
+                            "source": "user_message",
+                            "message": user_msg
+                        }
+                    )
+        except Exception:
+            pass
+
+        # Sync vehicle info on conversation model
+        v_parts = [str(state["vehicle"].get(k, "")) for k in ["year", "make", "model"] if state["vehicle"].get(k)]
+        if v_parts and not conversation.vehicle_info:
+            conversation.vehicle_info = " ".join(v_parts)
+            conversation.save(update_fields=['vehicle_info'])
+
+        turn_count = conversation.messages.filter(role='user').count()
+        state["question_count"] = turn_count
+
+        # 7. Dynamic Targeted Question Generation
+        reply_text, quick_replies, next_field, can_diagnose = get_next_question(state, turn_count, user_message_text or "")
+        state["next_field"] = next_field
+        conversation.state = state
+        conversation.save()
 
         # Save assistant reply to database
         Message.objects.create(
@@ -165,12 +237,23 @@ class ChatView(APIView):
             media_type='text'
         )
 
+        completed = len(state.get("answered_fields", []))
+        estimated_required = max(completed + (0 if can_diagnose else 1), 4)
+
         return Response({
             "reply": reply_text,
             "conversation_id": conversation.id,
-            "needs_more_info": needs_more_info,
-            "can_diagnose": not needs_more_info,
-            "vehicle_info": state["vehicle"] or conversation.vehicle_info
+            "needs_more_info": not can_diagnose,
+            "can_diagnose": can_diagnose,
+            "diagnostic_status": state.get("diagnostic_status", "collecting"),
+            "vehicle_info": conversation.vehicle_info,
+            "progress": {
+                "completed": completed,
+                "estimated_required": estimated_required
+            },
+            "next_field": next_field,
+            "quick_replies": quick_replies,
+            "candidate_issues": state.get("candidate_issues", [])
         }, status=status.HTTP_200_OK)
 
 
@@ -232,9 +315,12 @@ class UploadView(APIView):
 class DiagnosisView(APIView):
     """
     POST /api/diagnosis/
-    Calls Gemini AI ONLY when diagnosis reasoning is needed.
-    Passes structured information (Vehicle, Symptoms, Conditions, Media)
-    and stores structured diagnosis in SQLite.
+    1. Loads structured conversation state.
+    2. Checks for cached diagnosis (preventing duplicate Gemini calls).
+    3. Runs deterministic rule engine & candidate scoring.
+    4. Decides whether Gemini reasoning is needed (ambiguous cases) or local rule suffices.
+    5. Fallback logic on Gemini failure/rate-limit.
+    6. Saves structured Diagnosis record with source ('rules', 'gemini', 'fallback').
     """
     def post(self, request):
         conversation_id = request.data.get('conversation_id')
@@ -252,70 +338,47 @@ class DiagnosisView(APIView):
                 status=status.HTTP_404_NOT_FOUND
             )
 
-        # Gather structured information from conversation history
-        user_messages = conversation.messages.filter(role='user')
-        all_user_text = " ".join([m.content for m in user_messages])
-
         # Media attachments if any
+        user_messages = conversation.messages.filter(role='user')
         media_items = [
             f"Type: {m.media_type}, URL: {m.media_url}"
             for m in user_messages if m.media_url
         ]
-        media_info = "; ".join(media_items) if media_items else "None"
+        media_info = "; ".join(media_items) if media_items else None
 
-        vehicle = conversation.vehicle_info
-        if not vehicle:
-            # Try to extract again from full text
-            vehicle = extract_vehicle_info(all_user_text)
+        # Execute diagnostic engine
+        diagnosis, is_cached = perform_diagnosis(conversation, media_info=media_info)
 
-        symptoms = all_user_text
-        conditions = "Reported during driving/operation"
-
-        # Execute Gemini reasoning diagnosis (with rule-based fallback)
-        ai_result = diagnose_with_gemini(
-            vehicle=vehicle,
-            symptoms=symptoms,
-            conditions=conditions,
-            media_info=media_info
-        )
-
-        # Save Diagnosis record in database
-        diagnosis = Diagnosis.objects.create(
-            conversation=conversation,
-            symptoms=symptoms[:500],
-            diagnosis=ai_result.get("possible_issue", "Mechanical Issue"),
-            severity=ai_result.get("severity", "medium"),
-            recommendation=ai_result.get("recommended_service", "Vehicle Inspection"),
-            service=ai_result.get("recommended_service", "Vehicle Inspection"),
-            reasoning=ai_result.get("reasoning", ""),
-            safety_warning=ai_result.get("safety_warning", "")
-        )
-
-        # Also add summary message to conversation for record keeping
-        summary_msg = (
-            f"🔍 Diagnostic Result:\n"
-            f"• Issue: {diagnosis.diagnosis}\n"
-            f"• Severity: {diagnosis.severity.upper()}\n"
-            f"• Recommended Service: {diagnosis.service}\n\n"
-            f"{diagnosis.reasoning}"
-        )
-        Message.objects.create(
-            conversation=conversation,
-            role='assistant',
-            content=summary_msg,
-            media_type='text'
-        )
+        # Add summary message to conversation for record keeping if newly generated
+        if not is_cached:
+            summary_msg = (
+                f"Diagnostic Result:\n"
+                f"• Issue: {diagnosis.diagnosis}\n"
+                f"• Severity: {diagnosis.severity.upper()}\n"
+                f"• Confidence: {diagnosis.confidence.upper()}\n"
+                f"• Recommended Service: {diagnosis.service}\n\n"
+                f"{diagnosis.reasoning}"
+            )
+            Message.objects.create(
+                conversation=conversation,
+                role='assistant',
+                content=summary_msg,
+                media_type='text'
+            )
 
         return Response({
             "id": diagnosis.id,
             "conversation_id": conversation.id,
             "diagnosis": diagnosis.diagnosis,
             "severity": diagnosis.severity,
+            "confidence": diagnosis.confidence,
             "recommendation": diagnosis.recommendation,
             "service": diagnosis.service,
             "reasoning": diagnosis.reasoning,
             "safety_warning": diagnosis.safety_warning,
-            "vehicle": vehicle,
+            "vehicle": diagnosis.vehicle or conversation.vehicle_info,
+            "source": diagnosis.source,
+            "is_cached": is_cached,
             "created_at": diagnosis.created_at
         }, status=status.HTTP_200_OK)
 

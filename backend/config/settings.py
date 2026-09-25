@@ -66,22 +66,27 @@ TEMPLATES = [
 WSGI_APPLICATION = 'config.wsgi.application'
 
 DATABASE_URL = os.environ.get('DATABASE_URL') or os.environ.get('NEON_DATABASE_URL')
-if DATABASE_URL:
-    DATABASES = {
-        'default': dj_database_url.config(
-            default=DATABASE_URL,
-            conn_max_age=600,
-            conn_health_checks=True,
-            ssl_require=True,
-        )
-    }
-else:
-    DATABASES = {
-        'default': {
-            'ENGINE': 'django.db.backends.sqlite3',
-            'NAME': BASE_DIR / 'db.sqlite3',
-        }
-    }
+if not DATABASE_URL:
+    raise RuntimeError("DATABASE_URL must be configured for Neon PostgreSQL.")
+
+direct_url = DATABASE_URL.replace('-pooler.', '.')
+import sys
+active_db_url = direct_url if ('test' in sys.argv) else DATABASE_URL
+
+DATABASES = {
+    'default': dj_database_url.config(
+        default=active_db_url,
+        conn_max_age=600,
+        conn_health_checks=True,
+        ssl_require=True,
+    )
+}
+# For Django test execution on Neon PostgreSQL
+DATABASES['default']['TEST'] = {
+    'NAME': 'test_neondb',
+    'CHARSET': 'UTF8',
+    'DEPENDENCIES': [],
+}
 
 AUTH_PASSWORD_VALIDATORS = [
     {
@@ -131,3 +136,6 @@ REST_FRAMEWORK = {
 # Gemini API Key
 GEMINI_API_KEY = os.environ.get('GEMINI_API_KEY', '')
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
+# Dynamic Diagnostic Interview Configuration
+MAX_DIAGNOSTIC_QUESTIONS = int(os.environ.get('MAX_DIAGNOSTIC_QUESTIONS', 7))

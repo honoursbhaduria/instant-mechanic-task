@@ -23,10 +23,14 @@ class DiagnosisSerializer(serializers.ModelSerializer):
             'symptoms',
             'diagnosis',
             'severity',
+            'confidence',
             'recommendation',
             'service',
             'reasoning',
             'safety_warning',
+            'vehicle',
+            'source',
+            'fingerprint',
             'created_at'
         ]
 
@@ -41,6 +45,11 @@ class ConversationSerializer(serializers.ModelSerializer):
             'id',
             'session_id',
             'vehicle_info',
+            'state',
+            'gemini_calls',
+            'input_tokens',
+            'output_tokens',
+            'estimated_cost',
             'messages',
             'diagnoses',
             'created_at',

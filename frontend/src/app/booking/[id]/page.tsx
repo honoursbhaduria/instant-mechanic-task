@@ -53,7 +53,7 @@ export default function BookingDetailPage() {
   };
 
   return (
-    <div className="min-h-screen bg-[#faf9f5] text-stone-900 font-sans relative flex flex-col overflow-x-hidden selection:bg-red-600 selection:text-white">
+    <div className="min-h-screen bg-[#faf9f5] text-stone-900 font-sans relative flex flex-col overflow-x-clip selection:bg-red-600 selection:text-white">
       {/* Background Subtle Tech Grid matching landing page */}
       <div
         className="fixed inset-0 pointer-events-none bg-grid-subtle opacity-90 z-0"
@@ -76,7 +76,7 @@ export default function BookingDetailPage() {
             </Link>
 
             <Link href="/" className="flex items-center transition-opacity hover:opacity-90 shrink-0">
-              <div className="relative h-6 w-24 sm:w-28">
+              <div className="relative h-5 sm:h-6 w-20 sm:w-28">
                 <Image
                   src="/brand-logo.png"
                   alt="Instant Mechanic Logo"
@@ -149,7 +149,7 @@ export default function BookingDetailPage() {
                   <span>STATUS: {booking.status.toUpperCase()}</span>
                 </div>
                 <h1 className="text-xl sm:text-2xl font-bold text-black iosevka-charon-bold">
-                  Booking Confirmed ✅
+                  Booking Confirmed
                 </h1>
                 <p className="text-xs text-stone-500">
                   A certified mobile mechanic has been assigned to your service request.

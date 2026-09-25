@@ -15,11 +15,15 @@ export interface Diagnosis {
   symptoms: string;
   diagnosis: string;
   severity: 'low' | 'medium' | 'high';
+  confidence?: 'low' | 'medium' | 'high';
   recommendation: string;
   service: string;
   reasoning?: string;
   safety_warning?: string;
   vehicle?: string;
+  source?: 'rules' | 'gemini' | 'fallback';
+  is_cached?: boolean;
+  fingerprint?: string;
   created_at?: string;
 }
 
@@ -42,6 +46,11 @@ export interface Conversation {
   id: number;
   session_id: string;
   vehicle_info?: string;
+  state?: Record<string, unknown>;
+  gemini_calls?: number;
+  input_tokens?: number;
+  output_tokens?: number;
+  estimated_cost?: number;
   messages: Message[];
   diagnoses: Diagnosis[];
   created_at: string;
@@ -61,8 +70,18 @@ export interface ChatResponse {
   conversation_id: number;
   needs_more_info: boolean;
   can_diagnose?: boolean;
+  diagnostic_status?: string;
   vehicle_info?: string;
   is_rejected?: boolean;
+  is_security_refusal?: boolean;
+  is_safety_critical?: boolean;
+  progress?: {
+    completed: number;
+    estimated_required: number;
+  };
+  next_field?: string;
+  quick_replies?: string[];
+  candidate_issues?: Array<{ issue: string; score: number }>;
 }
 
 export interface VehicleMakesResponse {
@@ -74,3 +93,71 @@ export interface VehicleModelsResponse {
   count: number;
   models: string[];
 }
+
+export interface DiagnosticQuestionOption {
+  id: string;
+  label: string;
+}
+
+export interface DiagnosticQuestion {
+  id: string;
+  answer_type: 'text' | 'choice' | 'boolean' | 'number' | string;
+  options?: DiagnosticQuestionOption[];
+}
+
+export interface DiagnosticProgressInfo {
+  answered: number;
+  total: number;
+  percentage: number;
+}
+
+export interface DiagnosticConcern {
+  title: string;
+  system?: string;
+  likelihood?: string;
+  severity?: string;
+  explanation?: string;
+}
+
+export interface DiagnosticAssessment {
+  summary: string;
+  severity: 'caution' | 'warning' | 'critical' | 'low' | 'medium' | 'high' | string;
+  primary_concern: string;
+  possible_concerns: DiagnosticConcern[];
+  recommended_actions: string[];
+  safety?: {
+    level?: string;
+    message?: string;
+  };
+  limitations?: string[];
+  questions_asked?: number;
+  questions_answered?: number;
+  evidence_used?: string[];
+}
+
+export interface DiagnosticSessionData {
+  session: {
+    id: string;
+    status: 'planning' | 'collecting_answers' | 'ready_for_assessment' | 'assessing' | 'completed' | 'failed' | string;
+  };
+  progress: DiagnosticProgressInfo;
+  message?: {
+    role: 'assistant' | 'user';
+    type?: string;
+    content: string;
+  };
+  question?: DiagnosticQuestion | null;
+  assessment?: DiagnosticAssessment;
+  diagnosis_id?: number;
+}
+
+export interface DiagnosticApiResponse<T = DiagnosticSessionData> {
+  success: boolean;
+  data: T;
+  error?: {
+    code: string;
+    message: string;
+    details?: unknown;
+  } | null;
+}
+

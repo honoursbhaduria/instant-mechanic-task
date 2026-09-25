@@ -20,7 +20,17 @@ import { Phone, ChevronDown, X, Sparkles, MessageSquare } from 'lucide-react';
 export default function Navbar() {
   const router = useRouter();
   const [menuOpen, setMenuOpen] = useState(false);
+  const [menuWidth, setMenuWidth] = useState(380);
   const menuContainerRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handleResize = () => {
+      setMenuWidth(Math.min(380, window.innerWidth - 48));
+    };
+    handleResize();
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
   // Menu items with black text labels matching user request
   const branchedMenuItems: BranchedMenuItem[] = [
@@ -123,7 +133,7 @@ export default function Navbar() {
           
           {/* Left: Brand Logo in Crisp Clean Container */}
           <Link href="/" className="flex items-center transition-opacity hover:opacity-90 shrink-0">
-            <div className="relative h-6 w-24 sm:w-28">
+            <div className="relative h-5 sm:h-6 w-20 sm:w-28">
               <Image
                 src="/brand-logo.png"
                 alt="Instant Mechanic Logo"
@@ -144,15 +154,16 @@ export default function Navbar() {
             >
               <button
                 onClick={() => setMenuOpen(!menuOpen)}
-                className={`inline-flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-1.5 rounded-full text-xs font-bold tracking-wide transition-colors ${
+                className={`inline-flex items-center gap-1 sm:gap-2 px-2.5 sm:px-4 py-1 sm:py-1.5 rounded-full text-[11px] sm:text-xs font-bold tracking-wide transition-colors ${
                   menuOpen
                     ? 'bg-stone-900 text-white'
                     : 'bg-stone-100 hover:bg-stone-200 text-stone-900 border border-stone-200'
                 }`}
               >
                 <span className="flex h-1.5 w-1.5 rounded-full bg-emerald-600" />
-                <span>Menu & Services</span>
-                <ChevronDown className={`h-3.5 w-3.5 transition-transform duration-200 ${menuOpen ? 'rotate-180' : ''}`} />
+                <span className="hidden sm:inline">Menu & Services</span>
+                <span className="sm:hidden">Menu</span>
+                <ChevronDown className={`h-3 w-3 sm:h-3.5 sm:w-3.5 transition-transform duration-200 ${menuOpen ? 'rotate-180' : ''}`} />
               </button>
             </div>
 
@@ -177,7 +188,7 @@ export default function Navbar() {
           </div>
 
           {/* Right: Phone CTA & Book Action */}
-          <div className="flex items-center gap-2 shrink-0">
+          <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
             {/* Direct 24/7 Phone Call */}
             <a
               href="tel:+919266961110"
@@ -190,10 +201,11 @@ export default function Navbar() {
             {/* Primary Action Button - Shining Metal Effect */}
             <Link
               href="/chat"
-              className="btn-metal-shine inline-flex items-center gap-1.5 rounded-full px-3.5 sm:px-4 py-1.5 text-xs font-semibold active:scale-95 whitespace-nowrap"
+              className="btn-metal-shine inline-flex items-center gap-1 sm:gap-1.5 rounded-full px-3 sm:px-4 py-1.5 text-[11px] sm:text-xs font-semibold active:scale-95 whitespace-nowrap"
             >
-              <Sparkles className="h-3.5 w-3.5 text-amber-400 relative z-10 animate-pulse" />
-              <span className="relative z-10">Free AI Check</span>
+              <Sparkles className="h-3 w-3 sm:h-3.5 sm:w-3.5 text-amber-400 relative z-10 animate-pulse" />
+              <span className="relative z-10 hidden xs:inline">Free AI Check</span>
+              <span className="relative z-10 xs:hidden">AI Check</span>
             </Link>
           </div>
         </div>
@@ -203,7 +215,7 @@ export default function Navbar() {
           <div
             onMouseEnter={handleMouseEnter}
             onMouseLeave={handleMouseLeave}
-            className="absolute top-full mt-2 left-1/2 -translate-x-1/2 w-full max-w-md rounded-2xl bg-white/95 backdrop-blur-md border border-stone-200 p-5 text-left z-50 shadow-lg animate-in fade-in slide-in-from-top-2 duration-150"
+            className="absolute top-full mt-2 left-1/2 -translate-x-1/2 w-[calc(100vw-1.5rem)] max-w-md rounded-2xl bg-white/95 backdrop-blur-md border border-stone-200 p-4 sm:p-5 text-left z-50 shadow-lg animate-in fade-in slide-in-from-top-2 duration-150 max-h-[85vh] overflow-y-auto"
           >
             <div className="flex items-center justify-between pb-3 mb-2 border-b border-stone-100">
               <div className="flex items-center gap-2">
@@ -222,7 +234,7 @@ export default function Navbar() {
             </div>
 
             {/* The BranchedMenu Component with black text and subtle lines */}
-            <div className="py-2 flex justify-start">
+            <div className="py-2 flex justify-start overflow-x-hidden">
               <BranchedMenu
                 items={branchedMenuItems}
                 defaultOpen={[0, 1]}
@@ -231,9 +243,9 @@ export default function Navbar() {
                 color="#09090b"
                 accentColor="#dc2626"
                 lineColor="#e4e4e7"
-                width={380}
+                width={menuWidth}
                 rowHeight={36}
-                indent={44}
+                indent={Math.min(44, Math.floor(menuWidth / 9))}
                 trunk={14}
                 radius={10}
                 lineWidth={1.5}

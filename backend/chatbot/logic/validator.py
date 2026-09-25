@@ -38,9 +38,17 @@ CAR_KEYWORDS = {
     'balancing', 'inspection', 'diagnostic', 'mileage', 'gas mileage', 'fuel economy',
     'breakdown', 'towing', 'jump start', 'puncture', 'flat tyre', 'flat tire',
 
+    # Body, collision & exterior components
+    'bumper', 'bumpers', 'fender', 'fenders', 'dent', 'dented', 'dents', 'scratch', 'scratched',
+    'scratches', 'collision', 'crash', 'crashed', 'hit', 'accident', 'corner', 'curb', 'kerb',
+    'road', 'drive', 'driving', 'drivable', 'fixed', 'repair', 'repairs', 'fixing', 'bodywork',
+    'paint', 'panel', 'panels', 'quarter panel', 'door', 'windshield', 'side mirror', 'splitter',
+    'diffuser', 'undercarriage', 'undercar', 'subframe', 'chassis', 'airbag', 'airbags',
+
     # Hinglish & colloquial vehicle terms
     'gaadi', 'gadi', 'awaaz', 'awaz', 'dhuwan', 'dhuan', 'tel', 'hawa', 'pahiya',
-    'chal rahi', 'band pad', 'start nahi', 'garam'
+    'chal rahi', 'band pad', 'start nahi', 'garam', 'tik tik', 'tik-tik', 'tak tak',
+    'parking', 'turn', 'turning', 'modne', 'bayein', 'daayein'
 }
 
 # Major car manufacturers and popular models
@@ -48,7 +56,11 @@ POPULAR_MAKES = [
     'hyundai', 'maruti', 'suzuki', 'tata', 'mahindra', 'toyota', 'honda', 'ford',
     'chevrolet', 'kia', 'volkswagen', 'skoda', 'renault', 'nissan', 'bmw', 'mercedes',
     'audi', 'jeep', 'mg', 'volvo', 'porsche', 'lexus', 'tesla', 'subaru', 'mazda',
-    'mitsubishi', 'fiat', 'land rover', 'range rover', 'jaguar'
+    'mitsubishi', 'fiat', 'land rover', 'range rover', 'jaguar', 'bugatti', 'bugati',
+    'ferrari', 'lamborghini', 'lambo', 'mclaren', 'bentley', 'rolls-royce', 'rolls royce',
+    'aston martin', 'maserati', 'lotus', 'alfa romeo', 'cadillac', 'dodge', 'chrysler',
+    'gmc', 'buick', 'acura', 'infiniti', 'genesis', 'mini', 'hundai', 'chevy', 'mercdes',
+    'bimmer', 'beemer'
 ]
 
 POPULAR_MODELS = [
@@ -94,7 +106,7 @@ OFF_TOPIC_REJECTION = (
 )
 
 GREETING_REPLY = (
-    "Hello! I am your Instant Mechanic senior automotive diagnostic technician. 🔧\n\n"
+    "Hello! I am your Instant Mechanic senior automotive diagnostic technician.\n\n"
     "To help you diagnose any vehicle trouble, please tell me:\n"
     "1. What is the make, model, and year of your car?\n"
     "2. What symptom or issue are you experiencing (e.g., clicking noise, brake squeal, engine sputtering, warning light)?\n"
@@ -133,31 +145,43 @@ def is_car_related(text: str) -> bool:
         if ' ' in kw and kw in clean:
             return True
 
-    # Check for car makes or models
+    # Check for car makes or models with exact word boundary
     for make in POPULAR_MAKES:
-        if make in clean:
+        if re.search(r'\b' + re.escape(make) + r'\b', clean):
             return True
     for model in POPULAR_MODELS:
-        if model in clean:
+        if re.search(r'\b' + re.escape(model) + r'\b', clean):
             return True
     for make in COMMON_MAKES:
-        if make.lower() in clean:
+        if len(make) >= 3 and re.search(r'\b' + re.escape(make.lower()) + r'\b', clean):
             return True
     for token in tokens:
         if is_known_vehicle_make_or_model(token):
             return True
 
-    # Check for general automotive patterns (e.g., "starts and stops", "when I drive", "noise", "rpm", "km/h", "mph")
+    # Check for general automotive patterns
     context_patterns = [
         r'\b(when|while)\s+(i|it)\s+(turn|drive|brake|steer|accelerate|shift|reverse|start|idle)\b',
         r'\b(noise|sound|smell|vibrat|leak|smoke|heat)\b',
         r'\b(gear\s*\d|rpm|\d+\s*(kmph|mph|km/h))\b',
         r'\b(wheel|pedal|steering|dashboard|meter|hood)\b',
         r'\b(my|the)\s+(car|ride|wagon|sedan|suv|hatchback|truck|van)\b',
+        r'\b(my|the|our)\s+([a-zA-Z0-9_\'-]+)\s+(got\s+hit|hit|crashed|scratched|dented|damaged|broke|stopped|died|stalled|won\'t\s+start|making\s+noise|leaking)\b',
+        r'\b(hit|crashed|bumped|scratched|dented|smashed|damaged)\b',
+        r'\b(bumper|fender|headlight|bonnet|hood|windshield|airbag|bodywork|scratch|dent)\b',
+        r'\b(how\s+to\s+repair|how\s+to\s+fix|repair\s+my|fix\s+my|can\s+i\s+drive|safe\s+to\s+drive)\b',
     ]
     for pattern in context_patterns:
         if re.search(pattern, clean):
             return True
+
+    # Check if fact extractor detects automotive facts
+    from .fact_extractor import extract_facts
+    f = extract_facts(text)
+    if f.get("problem", {}).get("noise_type") or f.get("problem", {}).get("system") or f.get("vehicle", {}).get("model"):
+        return True
+    if f.get("conditions", {}).get("turning") is not None or f.get("conditions", {}).get("braking") is not None:
+        return True
 
     return False
 

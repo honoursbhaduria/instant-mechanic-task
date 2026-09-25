@@ -60,7 +60,7 @@ export default function HistoryPage() {
   };
 
   return (
-    <div className="min-h-screen bg-[#faf9f5] text-stone-900 font-sans relative flex flex-col overflow-x-hidden selection:bg-red-600 selection:text-white">
+    <div className="min-h-screen bg-[#faf9f5] text-stone-900 font-sans relative flex flex-col overflow-x-clip selection:bg-red-600 selection:text-white">
       {/* Background Subtle Tech Grid Layer matching landing page */}
       <div
         className="fixed inset-0 pointer-events-none bg-grid-subtle opacity-90 z-0"
@@ -84,7 +84,7 @@ export default function HistoryPage() {
             </Link>
 
             <Link href="/" className="flex items-center transition-opacity hover:opacity-90 shrink-0">
-              <div className="relative h-6 w-24 sm:w-28">
+              <div className="relative h-5 sm:h-6 w-20 sm:w-28">
                 <Image
                   src="/brand-logo.png"
                   alt="Instant Mechanic Logo"
@@ -105,10 +105,11 @@ export default function HistoryPage() {
           <div className="flex items-center gap-2">
             <Link
               href="/chat"
-              className="btn-metal-shine inline-flex items-center gap-1.5 rounded-full px-4 py-1.5 text-xs font-bold active:scale-95"
+              className="btn-metal-shine inline-flex items-center gap-1.5 rounded-full px-3.5 sm:px-4 py-1.5 text-xs font-bold active:scale-95 whitespace-nowrap"
             >
               <Sparkles className="h-3.5 w-3.5 text-amber-400 relative z-10" />
-              <span className="relative z-10">New Consultation</span>
+              <span className="relative z-10 hidden xs:inline">New Consultation</span>
+              <span className="relative z-10 xs:hidden">Consult</span>
             </Link>
           </div>
         </div>

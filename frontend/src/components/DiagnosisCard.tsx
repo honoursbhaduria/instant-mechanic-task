@@ -58,7 +58,21 @@ export default function DiagnosisCard({ diagnosis, onBookMechanic }: DiagnosisCa
           </div>
         </div>
 
-        <div className="flex items-center gap-1.5">
+        <div className="flex flex-wrap items-center gap-1.5">
+          {/* Confidence Badge */}
+          {diagnosis.confidence && (
+            <span className="hidden sm:inline-flex items-center gap-1 rounded-full bg-stone-100 border border-stone-200 px-2 py-0.5 text-[10px] font-mono font-semibold text-stone-700">
+              <span>{diagnosis.confidence.toUpperCase()} CONFIDENCE</span>
+            </span>
+          )}
+
+          {/* Cached indicator */}
+          {diagnosis.is_cached && (
+            <span className="inline-flex items-center gap-1 rounded-full bg-amber-100 border border-amber-300 text-amber-900 px-2 py-0.5 text-[10px] font-mono font-bold">
+              CACHED
+            </span>
+          )}
+
           <span className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[10px] font-mono font-bold ${config.badgeBg}`}>
             <SeverityIcon className="h-3 w-3" />
             <span>{config.label}</span>

@@ -6,7 +6,9 @@ import {
   Booking,
   Conversation,
   VehicleMakesResponse,
-  VehicleModelsResponse
+  VehicleModelsResponse,
+  DiagnosticSessionData,
+  DiagnosticApiResponse
 } from './types';
 
 const rawUrl = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000/api';
@@ -138,6 +140,46 @@ export const api = {
 
   async getVehicleModels(make: string): Promise<VehicleModelsResponse> {
     const res = await apiClient.get<VehicleModelsResponse>(`/vehicles/models/?make=${encodeURIComponent(make)}`);
+    return res.data;
+  },
+
+  async createDiagnosticSession(payload: {
+    message: string;
+    vehicle?: { make?: string; model?: string; year?: number };
+    vehicle_id?: string;
+  }): Promise<DiagnosticApiResponse<DiagnosticSessionData>> {
+    const res = await apiClient.post<DiagnosticApiResponse<DiagnosticSessionData>>('/v1/diagnostic/sessions/', payload);
+    return res.data;
+  },
+
+  async submitDiagnosticAnswer(
+    sessionId: string,
+    questionId: string,
+    answer: { text: string } | string
+  ): Promise<DiagnosticApiResponse<DiagnosticSessionData>> {
+    const formattedAnswer = typeof answer === 'string' ? { text: answer } : answer;
+    const res = await apiClient.post<DiagnosticApiResponse<DiagnosticSessionData>>(
+      `/v1/diagnostic/sessions/${sessionId}/answers/`,
+      {
+        question_id: questionId,
+        answer: formattedAnswer,
+      }
+    );
+    return res.data;
+  },
+
+  async assessDiagnosticSession(sessionId: string): Promise<DiagnosticApiResponse<DiagnosticSessionData>> {
+    const res = await apiClient.post<DiagnosticApiResponse<DiagnosticSessionData>>(
+      `/v1/diagnostic/sessions/${sessionId}/assess/`,
+      { confirm: true }
+    );
+    return res.data;
+  },
+
+  async getDiagnosticSession(sessionId: string): Promise<DiagnosticApiResponse<DiagnosticSessionData>> {
+    const res = await apiClient.get<DiagnosticApiResponse<DiagnosticSessionData>>(
+      `/v1/diagnostic/sessions/${sessionId}/`
+    );
     return res.data;
   },
 };
